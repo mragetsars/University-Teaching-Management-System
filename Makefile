@@ -1,5 +1,5 @@
 CXX = g++
-CXXFLAGS = -std=c++20 -I./includes -Wall -Wextra -pedantic
+CXXFLAGS = -std=c++20 -I./includes -Wall -Wextra -pedantic -Wno-unused-parameter -Wno-type-limits -Wno-implicit-fallthrough
 SRCDIR = sources
 OBJDIR = objects
 BINDIR = .
