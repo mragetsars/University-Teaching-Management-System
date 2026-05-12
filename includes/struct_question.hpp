@@ -80,7 +80,6 @@ struct QUESTION
 #define CLASS_NUMBER "class_number"
 #define IMAGE "image"
 #define PHOTO "photo"
-#define PROFESSOR_ID "professor_id"
 #define FORM_ID "form_id"
 
 #define INFO_ERROR "IE"
@@ -96,8 +95,11 @@ enum input_error
 class Check_Error
 {
 private:
-    bool is_Whole_id(const std::string &input);
+    bool is_whole_number(const std::string &input);
     bool is_natural_number(const std::string &input);
+    bool has_no_arguments(vector<string> *input);
+    bool canonicalize(vector<string> *input, const vector<string> &required, const vector<string> &optional = {});
+    string value_of(const vector<string> &input, const string &key);
 
     input_error POST_login_error(vector<string> *input);
     input_error GET_courses_error(vector<string> *input);

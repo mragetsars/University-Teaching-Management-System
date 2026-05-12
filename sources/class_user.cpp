@@ -10,22 +10,17 @@ User::User(USER input_info)
 
 response User::login(string input_id, string input_password)
 {
-    if (id == input_id)
-        if (password == input_password)
-            return Ok;
-        else
-            return PermissionDenied;
-    else
+    if (id != input_id)
         return NotFound;
+    if (password != input_password)
+        return PermissionDenied;
+    return Ok;
 }
 
 response User::new_post(string input_title, string input_message, string input_image_address)
 {
     POST the_post;
-    if (posts.size() != 0)
-        the_post.id = posts[posts.size() - 1].id + 1;
-    else
-        the_post.id = 1;
+    the_post.id = posts.empty() ? 1 : posts.back().id + 1;
     the_post.title = input_title;
     the_post.message = input_message;
     the_post.image_address = input_image_address;
@@ -36,68 +31,82 @@ response User::new_post(string input_title, string input_message, string input_i
 
 response User::delete_post(int input_id)
 {
-    int n = -1;
-    for (int i = 0; i < posts.size(); i++)
-        if (posts[i].id == input_id)
-            n = i;
-    if (n == -1)
-        return NotFound;
-    else
-        posts.erase(posts.begin() + n);
-    return Ok;
+    for (int i = 0; i < (int)posts.size(); i++)
+        if (posts[i].id == input_id && !posts[i].is_ta_form)
+        {
+            posts.erase(posts.begin() + i);
+            return Ok;
+        }
+    return NotFound;
 }
 
 response User::show_post(vector<string> *output, int input_id)
 {
-
-    if (posts.size() == 0)
-        return Empty;
-    int n = -1;
-    for (int i = 0; i < posts.size(); i++)
-        if (posts[i].id == input_id)
-            n = i;
-    if (n == -1)
-        return NotFound;
-    else
-    {
-        output->push_back(int_to_str(posts[n].id));
-        output->push_back(SPACE);
-        output->push_back(posts[n].title);
-        output->push_back(SPACE);
-        output->push_back(posts[n].message);
-        output->push_back(ENTER);
-        return JustInformation;
-    }
+    for (int i = 0; i < (int)posts.size(); i++)
+        if (posts[i].id == input_id && !posts[i].is_ta_form)
+        {
+            output->push_back(int_to_str(posts[i].id));
+            output->push_back(SPACE);
+            output->push_back(quote_text(posts[i].title));
+            output->push_back(SPACE);
+            output->push_back(quote_text(posts[i].message));
+            output->push_back(ENTER);
+            return JustInformation;
+        }
+    return NotFound;
 }
 
 response User::show_page(vector<string> *output)
 {
-    for (int i = 0; i < posts.size(); i++)
+    for (int i = (int)posts.size() - 1; i >= 0; i--)
     {
-        output->push_back(int_to_str(posts[i].id));
-        output->push_back(SPACE);
-        output->push_back(posts[i].title);
-        output->push_back(SPACE);
-        output->push_back(posts[i].message);
-        output->push_back(ENTER);
+        if (posts[i].is_ta_form)
+        {
+            output->push_back(int_to_str(posts[i].id));
+            output->push_back(SPACE);
+            output->push_back(TA_FORM_FOR + posts[i].ta_course_name + SPACE + COURSE_);
+            output->push_back(ENTER);
+        }
+        else
+        {
+            output->push_back(int_to_str(posts[i].id));
+            output->push_back(SPACE);
+            output->push_back(quote_text(posts[i].title));
+            output->push_back(ENTER);
+        }
     }
     return JustInformation;
 }
 
+bool User::has_connection(User *connection) const
+{
+    for (auto item : connections)
+        if (item->id == connection->id)
+            return true;
+    return false;
+}
+
+void User::add_connection_one_way(User *connection)
+{
+    if (connection == nullptr || connection->id == id || has_connection(connection))
+        return;
+    connections.push_back(connection);
+}
+
 response User::new_connection(User *connection)
 {
-    for (int i = 0; i < connections.size(); i++)
-        if (connections[i]->id == connection->id)
-            return BadRequest;
-    connections.push_back(connection);
+    if (connection == nullptr || connection->id == id || has_connection(connection))
+        return BadRequest;
+    add_connection_one_way(connection);
+    connection->add_connection_one_way(this);
     return Ok;
 }
 
 response User::show_notifications(vector<string> *output)
 {
-    if (notifications.size() == 0)
+    if (notifications.empty())
         return Empty;
-    for (int i = notifications.size() - 1; i >= 0; i--)
+    for (int i = (int)notifications.size() - 1; i >= 0; i--)
     {
         output->push_back(notifications[i].id);
         output->push_back(SPACE);
@@ -110,22 +119,25 @@ response User::show_notifications(vector<string> *output)
     notifications.clear();
     return JustInformation;
 }
+
 void User::send_notifications(string input_subject)
 {
-    for (int i = 0; i < connections.size(); i++)
-        connections[i]->receive_notification(id, name, input_subject);
+    for (auto connection : connections)
+        connection->receive_notification(id, name, input_subject);
 }
+
 void User::receive_notification(string input_id, string input_name, string input_subject)
 {
-    NOTIFICATION new_notification;
-    new_notification.id = input_id;
-    new_notification.name = input_name;
-    new_notification.subject = input_subject;
-    notifications.push_back(new_notification);
+    notifications.push_back({input_id, input_name, input_subject});
 }
 
 response User::set_profile_photo(string input_photo_address)
 {
     profile_photo_address = input_photo_address;
     return Ok;
+}
+
+string User::profile_photo() const
+{
+    return profile_photo_address;
 }

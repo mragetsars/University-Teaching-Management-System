@@ -14,26 +14,43 @@ Class::Class(string input_id,
     teacher = input_teacher;
     class_time = string_to_time(input_class_time);
     exam_date = string_to_date(input_exam_date);
-    claee_number = stoi(input_class_number);
+    class_number = stoi(input_class_number);
 }
 Class::Class() {}
 
 bool Class::has_accsess(User *input_user, int level)
 {
-    bool output = false;
+    if (input_user == nullptr)
+        return false;
     if (teacher->id == input_user->id)
-        output = true;
-    if (level == 3)
-        return output;
-    for (int i = 0; i < students.size(); i++)
-        if (students[i]->id == input_user->id)
-            output = true;
-    if (level == 2)
-        return output;
-    for (int i = 0; i < teacher_assistants.size(); i++)
-        if (teacher_assistants[i]->id == input_user->id)
-            output = true;
-    return output;
+        return true;
+    if (level == 3) // only professor of the class
+        return false;
+    if (level == 2) // professor and TAs may post
+        return has_teacher_assistant(input_user->id);
+    // level 1: professor, TAs, and enrolled students may view
+    return has_teacher_assistant(input_user->id) || has_student(input_user->id);
+}
+
+bool Class::has_student(string input_id) const
+{
+    for (auto student : students)
+        if (student->id == input_id)
+            return true;
+    return false;
+}
+
+bool Class::has_teacher_assistant(string input_id) const
+{
+    for (auto ta : teacher_assistants)
+        if (ta->id == input_id)
+            return true;
+    return false;
+}
+
+bool Class::is_full() const
+{
+    return (int)students.size() >= capacity;
 }
 
 response Class::show_info(vector<string> *output)
@@ -47,110 +64,113 @@ response Class::show_info(vector<string> *output)
     output->push_back(teacher->name);
     return JustInformation;
 }
+
 response Class::show_page(vector<string> *output)
 {
-    (*output)[output->size() - 1] = SPACE;
-    output->push_back(day_to_str(class_time.week));
-    output->push_back(string(1, COLON));
-    output->push_back(to_string(class_time.start));
-    output->push_back(string(1, DASH));
-    output->push_back(to_string(class_time.end));
     output->push_back(SPACE);
-    output->push_back(to_string(exam_date.year));
-    output->push_back(string(1, SLAH));
-    output->push_back(to_string(exam_date.month));
-    output->push_back(string(1, SLAH));
-    output->push_back(to_string(exam_date.day));
+    output->push_back(time_to_string(class_time));
+    output->push_back(SPACE);
+    output->push_back(date_to_string(exam_date));
+    output->push_back(SPACE);
+    output->push_back(to_string(class_number));
     return JustInformation;
 }
+
+void Class::append_full_info(vector<string> *output)
+{
+    show_info(output);
+    show_page(output);
+}
+
 bool Class::new_student(User *new_student)
 {
-    if (students.size() < capacity)
-        students.push_back(new_student);
-    else
+    if (new_student == nullptr || has_student(new_student->id) || is_full())
         return false;
+    students.push_back(new_student);
     return true;
 }
+
 bool Class::new_teacher_assistant(User *new_student)
 {
+    if (new_student == nullptr || has_teacher_assistant(new_student->id))
+        return false;
     teacher_assistants.push_back(new_student);
     return true;
 }
+
 bool Class::delete_student(string input_id)
 {
-    int n = -1;
-    for (int i = 0; i < students.size(); i++)
+    for (int i = 0; i < (int)students.size(); i++)
         if (students[i]->id == input_id)
-            n = i;
-    if (n == -1)
-        return false;
-    else
-        students.erase(students.begin() + n);
-    return true;
+        {
+            students.erase(students.begin() + i);
+            return true;
+        }
+    return false;
 }
+
 response Class::new_post(User *input_author, string input_title, string input_message, string input_image_address)
 {
     if (!has_accsess(input_author, 2))
         return PermissionDenied;
     CHANNEL_POST the_post;
-    if (channel_posts.size() != 0)
-        the_post.id = channel_posts[channel_posts.size() - 1].id + 1;
-    else
-        the_post.id = 1;
+    the_post.id = channel_posts.empty() ? 1 : channel_posts.back().id + 1;
+    the_post.author_id = input_author->id;
     the_post.author_name = input_author->name;
     the_post.title = input_title;
     the_post.message = input_message;
     the_post.image_address = input_image_address;
     channel_posts.push_back(the_post);
-    send_notifications(NEW_COURS_POST_notif);
+    send_notifications(NEW_COURSE_POST_notif, input_author);
     return Ok;
 }
-void Class::send_notifications(string input_subject)
+
+void Class::send_notifications(string input_subject, User *excluded_user)
 {
-    teacher->receive_notification(id, course->name, input_subject);
-    for (int i = 0; i < students.size(); i++)
-        students[i]->receive_notification(id, course->name, input_subject);
-    for (int i = 0; i < teacher_assistants.size(); i++)
-        teacher_assistants[i]->receive_notification(id, course->name, input_subject);
+    auto notify_if_needed = [&](User *receiver)
+    {
+        if (receiver != nullptr && (excluded_user == nullptr || receiver->id != excluded_user->id))
+            receiver->receive_notification(id, course->name, input_subject);
+    };
+    notify_if_needed(teacher);
+    for (auto student : students)
+        notify_if_needed(student);
+    for (auto ta : teacher_assistants)
+        notify_if_needed(ta);
 }
+
 response Class::show_channel(User *input_user, vector<string> *output)
 {
     if (!has_accsess(input_user, 1))
         return PermissionDenied;
-    show_info(output);
-    show_page(output);
+    append_full_info(output);
     output->push_back(ENTER);
-    for (int i = 0; i < channel_posts.size(); i++)
+    for (int i = (int)channel_posts.size() - 1; i >= 0; i--)
     {
         output->push_back(int_to_str(channel_posts[i].id));
         output->push_back(SPACE);
         output->push_back(channel_posts[i].author_name);
         output->push_back(SPACE);
-        output->push_back(channel_posts[i].title);
+        output->push_back(quote_text(channel_posts[i].title));
         output->push_back(ENTER);
     }
     return JustInformation;
 }
+
 response Class::show_post(vector<string> *output, int input_id)
 {
-    if (channel_posts.size() == 0)
-        return Empty;
-    int n = -1;
-    for (int i = 0; i < channel_posts.size(); i++)
+    for (int i = 0; i < (int)channel_posts.size(); i++)
         if (channel_posts[i].id == input_id)
-            n = i;
-    if (n == -1)
-        return NotFound;
-    else
-    {
-        output->push_back(int_to_str(channel_posts[n].id));
-        output->push_back(SPACE);
-        output->push_back(channel_posts[n].author_name);
-        output->push_back(SPACE);
-        output->push_back(channel_posts[n].title);
-        output->push_back(SPACE);
-        output->push_back(channel_posts[n].message);
-        output->push_back(ENTER);
-    }
-    return JustInformation;
+        {
+            output->push_back(int_to_str(channel_posts[i].id));
+            output->push_back(SPACE);
+            output->push_back(channel_posts[i].author_name);
+            output->push_back(SPACE);
+            output->push_back(quote_text(channel_posts[i].title));
+            output->push_back(SPACE);
+            output->push_back(quote_text(channel_posts[i].message));
+            output->push_back(ENTER);
+            return JustInformation;
+        }
+    return NotFound;
 }

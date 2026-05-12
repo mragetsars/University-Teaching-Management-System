@@ -7,7 +7,8 @@
 class Student : public User
 {
 private:
-    vector<Class*> classes;
+    vector<Class *> classes;
+
 public:
     string major_id;
     int semester;
@@ -17,4 +18,5 @@ public:
     response new_class(Class *input_new_class);
     response delete_class(string input_id);
     response show_class(vector<string> *output);
+    bool has_class(string input_id) const;
 };

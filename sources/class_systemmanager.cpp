@@ -3,7 +3,6 @@
 System_Manager::System_Manager(USER input_info)
     : User(input_info)
 {
-
 }
 System_Manager::System_Manager() {}
 

@@ -12,65 +12,87 @@ response Student::show_info(vector<string> *output, vector<MAJOR> *majors)
 {
     output->push_back(name);
     output->push_back(SPACE);
-    output->push_back((*majors)[str_to_int(major_id) - 1].name);
+    for (auto major : *majors)
+        if (major.id == major_id)
+        {
+            output->push_back(major.name);
+            break;
+        }
     output->push_back(SPACE);
     output->push_back(int_to_str(semester));
-    output->push_back(SPACE);
-    if (classes.size() != 0)
-        for (int i = 0; i < classes.size(); i++)
+    if (!classes.empty())
+    {
+        output->push_back(SPACE);
+        for (int i = 0; i < (int)classes.size(); i++)
         {
             if (i != 0)
                 output->push_back(string(1, COMMA));
             output->push_back(classes[i]->course->name);
         }
+    }
     output->push_back(ENTER);
     return JustInformation;
 }
 
+bool Student::has_class(string input_id) const
+{
+    for (auto input_class : classes)
+        if (input_class->id == input_id)
+            return true;
+    return false;
+}
+
 response Student::new_class(Class *input_new_class)
 {
-    for (auto m : input_new_class->course->major_ids)
-        if (m == major_id)
-        {
-            if (semester < input_new_class->course->prerequisite)
-                return PermissionDenied;
-            for (auto c : classes)
-                if (c->class_time.week == input_new_class->class_time.week)
-                    if (((c->class_time.start < input_new_class->class_time.end &&
-                          c->class_time.end >= input_new_class->class_time.end) ||
-                         (c->class_time.start <= input_new_class->class_time.start &&
-                          c->class_time.end > input_new_class->class_time.start)) ||
-                        ((c->exam_date.day == input_new_class->exam_date.day) &&
-                         (c->exam_date.month == input_new_class->exam_date.month) &&
-                         (c->exam_date.year == input_new_class->exam_date.year)))
-                        return PermissionDenied;
-            classes.push_back(input_new_class);
-            return Ok;
-        }
-    return PermissionDenied;
-}
-response Student::delete_class(string input_id)
-{
-    int n = -1;
-    for (int i = 0; i < classes.size(); i++)
-        if (classes[i]->id == input_id)
-            n = i;
-    if (n == -1)
+    if (input_new_class == nullptr)
         return NotFound;
-    if (!classes[n]->delete_student(id))
-        return NotFound;
-    else
-        classes.erase(classes.begin() + n);
+    if (has_class(input_new_class->id) || input_new_class->is_full())
+        return PermissionDenied;
+
+    bool major_allowed = false;
+    for (auto major : input_new_class->course->major_ids)
+        if (major == major_id)
+            major_allowed = true;
+    if (!major_allowed)
+        return PermissionDenied;
+
+    if (semester < input_new_class->course->prerequisite)
+        return PermissionDenied;
+
+    for (auto current_class : classes)
+        if (times_overlap(current_class->class_time, input_new_class->class_time) ||
+            dates_equal(current_class->exam_date, input_new_class->exam_date))
+            return PermissionDenied;
+
+    if (!input_new_class->new_student(this))
+        return PermissionDenied;
+    classes.push_back(input_new_class);
+    send_notifications(GET_COURSE_notif);
     return Ok;
 }
+
+response Student::delete_class(string input_id)
+{
+    for (int i = 0; i < (int)classes.size(); i++)
+        if (classes[i]->id == input_id)
+        {
+            if (!classes[i]->delete_student(id))
+                return NotFound;
+            classes.erase(classes.begin() + i);
+            send_notifications(DELETE_COURSE_notif);
+            return Ok;
+        }
+    return NotFound;
+}
+
 response Student::show_class(vector<string> *output)
 {
-    if (classes.size() == 0)
+    if (classes.empty())
         return Empty;
-    for (int i = 0; i < classes.size(); i++)
+    for (auto input_class : classes)
     {
-        classes[i]->show_info(output);
-        classes[i]->show_page(output);
+        input_class->append_full_info(output);
+        output->push_back(ENTER);
     }
     return JustInformation;
 }

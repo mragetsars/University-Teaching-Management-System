@@ -5,7 +5,7 @@
 #include "struct_data.hpp"
 #include "class_user.hpp"
 
-#define NEW_COURS_POST_notif "New Course Post"
+#define NEW_COURSE_POST_notif "New Course Post"
 
 class Class
 {
@@ -21,7 +21,8 @@ public:
     COURSE *course;
     int capacity;
     User *teacher;
-    int claee_number;
+    int class_number;
+
     Class(string input_id,
           COURSE *input_course,
           int input_capacity,
@@ -32,14 +33,18 @@ public:
     Class();
 
     bool has_accsess(User *input_user, int level);
+    bool has_student(string input_id) const;
+    bool has_teacher_assistant(string input_id) const;
+    bool is_full() const;
 
     response show_info(vector<string> *output);
     response show_page(vector<string> *output);
+    void append_full_info(vector<string> *output);
     bool new_student(User *new_student);
     bool new_teacher_assistant(User *new_student);
     bool delete_student(string input_id);
     response new_post(User *input_author, string input_title, string input_message, string input_image_address);
     response show_post(vector<string> *output, int input_id);
-    void send_notifications(string input_subject);
+    void send_notifications(string input_subject, User *excluded_user = nullptr);
     response show_channel(User *input_user, vector<string> *output);
 };

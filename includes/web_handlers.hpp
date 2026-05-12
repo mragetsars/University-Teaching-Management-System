@@ -8,6 +8,39 @@
 #include "struct_question.hpp"
 #include "struct_answer.hpp"
 #include "handler_instruction.hpp"
+#include "io_terminal.hpp"
+
+class LoginPageHandler : public RequestHandler
+{
+public:
+    Response *callback(Request *) override;
+};
+
+class HomeHandler : public RequestHandler
+{
+private:
+    Instruction_Handler *ih_;
+
+public:
+    HomeHandler(Instruction_Handler *ih);
+    Response *callback(Request *) override;
+};
+
+class ConsolePageHandler : public RequestHandler
+{
+public:
+    Response *callback(Request *) override;
+};
+
+class ConsoleCommandHandler : public RequestHandler
+{
+private:
+    Instruction_Handler *ih_;
+
+public:
+    ConsoleCommandHandler(Instruction_Handler *ih);
+    Response *callback(Request *) override;
+};
 
 class RandomNumberHandler : public RequestHandler
 {

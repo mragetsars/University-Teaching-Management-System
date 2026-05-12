@@ -14,14 +14,16 @@ private:
     bool is_login;
     vector<MAJOR> majors;
     vector<COURSE> courses;
-    vector<Class> classes;
+    deque<Class> classes;
     System_Manager system_manager;
     vector<Student> students;
     vector<Professor> professors;
 
     bool find_user_by_id(User **user_ptr, string id);
     bool find_class_by_id(Class **class_ptr, string id);
+    bool find_course_by_id(COURSE **course_ptr, string id);
     bool check_class_detail(User *input_teacher, string input_class_time);
+    void broadcast_notification(User *sender, string subject);
 
     ANSWER POST_login(vector<string> input);
     ANSWER POST_logout();
@@ -48,4 +50,7 @@ public:
     User *user;
     Instruction_Handler(DATA input_data);
     ANSWER run(QUESTION input);
+    bool logged_in() const;
+    string current_user_id() const;
+    string current_user_name() const;
 };

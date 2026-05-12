@@ -6,9 +6,7 @@ vector<string> split(const string &s, char delimiter)
     string token;
     istringstream tokenStream(s);
     while (getline(tokenStream, token, delimiter))
-    {
         tokens.push_back(token);
-    }
     return tokens;
 }
 
@@ -20,6 +18,8 @@ void data_extraction(const string &filename, vector<Struct> &vec, void (*Struct_
     getline(file, line);
     while (getline(file, line))
     {
+        if (line.empty())
+            continue;
         vector<string> tokens = split(line, COMMA);
         Struct item;
         Struct_extraction(tokens, item);
@@ -56,6 +56,7 @@ void professor_extraction(vector<string> &tokens, PROFESSOR &professor)
     professor.info.id = tokens[0];
     professor.info.name = tokens[1];
     professor.info.major_id = tokens[2];
+    professor.position_name = tokens[3];
     professor.position = str_to_pos(tokens[3]);
     professor.info.password = tokens[4];
 }

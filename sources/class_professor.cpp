@@ -5,84 +5,157 @@ Professor::Professor(PROFESSOR input_info)
 {
     major_id = input_info.info.major_id;
     position = input_info.position;
+    position_name = input_info.position_name.empty() ? pos_to_str(input_info.position) : input_info.position_name;
 }
 Professor::Professor() {}
+
+void Professor::offer_class(Class *input_class)
+{
+    if (input_class != nullptr && !owns_class(input_class))
+        classes.push_back(input_class);
+}
+
+bool Professor::owns_class(Class *input_class) const
+{
+    if (input_class == nullptr)
+        return false;
+    for (auto current_class : classes)
+        if (current_class->id == input_class->id)
+            return true;
+    return false;
+}
 
 response Professor::show_info(vector<string> *output, vector<MAJOR> *majors)
 {
     output->push_back(name);
     output->push_back(SPACE);
-    output->push_back((*majors)[str_to_int(major_id) - 1].name);
+    for (auto major : *majors)
+        if (major.id == major_id)
+        {
+            output->push_back(major.name);
+            break;
+        }
     output->push_back(SPACE);
-    output->push_back(pos_to_str(position));
+    output->push_back(position_name);
+    if (!classes.empty())
+    {
+        output->push_back(SPACE);
+        for (int i = 0; i < (int)classes.size(); i++)
+        {
+            if (i != 0)
+                output->push_back(string(1, COMMA));
+            output->push_back(classes[i]->course->name);
+        }
+    }
     output->push_back(ENTER);
     return JustInformation;
 }
 
 response Professor::new_form(Class *input_class, string input_message)
 {
+    if (input_class == nullptr)
+        return NotFound;
+    if (!owns_class(input_class))
+        return PermissionDenied;
+
     POST the_post;
-    if (posts.size() != 0)
-        the_post.id = posts[posts.size() - 1].id + 1;
-    else
-        the_post.id = 1;
-    string input_title = TA_FORM_FOR + input_class->course->name + SPACE + COURSE_;
-    input_message = input_class->id + SPACE + input_class->course->name + SPACE + int_to_str(input_class->capacity) + SPACE + input_class->teacher->name + SPACE + day_to_str(input_class->class_time.week) + string(1, COLON) + int_to_str(input_class->class_time.start) + string(1, DASH) + int_to_str(input_class->class_time.end) + SPACE + int_to_str(input_class->exam_date.year) + string(1, SLAH) + int_to_str(input_class->exam_date.month) + string(1, SLAH) + int_to_str(input_class->exam_date.day) + SPACE + int_to_str(input_class->claee_number) + ENTER + input_message;
-    the_post.title = input_title;
+    the_post.id = posts.empty() ? 1 : posts.back().id + 1;
+    the_post.is_ta_form = true;
+    the_post.ta_course_id = input_class->id;
+    the_post.ta_course_name = input_class->course->name;
+    the_post.title = TA_FORM_FOR + input_class->course->name + SPACE + COURSE_;
     the_post.message = input_message;
     posts.push_back(the_post);
+
     FORM the_form;
-    the_form.id = posts[posts.size() - 1].id;
+    the_form.id = the_post.id;
     the_form.form_class = input_class;
+    the_form.message = input_message;
     forms.push_back(the_form);
     send_notifications(NEW_FORM_notif);
     return Ok;
 }
-response Professor::new_request(User *input_user, int input_id)
+
+response Professor::show_post(vector<string> *output, int input_id)
 {
-    int n = -1;
-    for (int i = 0; i < forms.size(); i++)
-        if (forms[i].id == input_id)
-            n = i;
-    if (n == -1)
-        return NotFound;
-    forms[n].requests.push_back(input_user);
-    return Ok;
+    for (auto form : forms)
+        if (form.id == input_id)
+        {
+            output->push_back(int_to_str(form.id));
+            output->push_back(SPACE);
+            output->push_back(TA_FORM_FOR + form.form_class->course->name + SPACE + COURSE_);
+            output->push_back(ENTER);
+            form.form_class->append_full_info(output);
+            output->push_back(ENTER);
+            output->push_back(quote_text(form.message));
+            output->push_back(ENTER);
+            return JustInformation;
+        }
+    return User::show_post(output, input_id);
 }
+
+response Professor::new_request(Student *input_user, int input_id)
+{
+    if (input_user == nullptr)
+        return NotFound;
+    for (int i = 0; i < (int)forms.size(); i++)
+        if (forms[i].id == input_id)
+        {
+            if (input_user->semester <= forms[i].form_class->course->prerequisite)
+                return PermissionDenied;
+            for (auto request : forms[i].requests)
+                if (request->id == input_user->id)
+                    return BadRequest;
+            forms[i].requests.push_back(input_user);
+            return Ok;
+        }
+    return NotFound;
+}
+
 response Professor::close_form(int input_id)
 {
-    int n = -1;
-    for (int i = 0; i < posts.size(); i++)
-        if (posts[i].id == input_id)
-            n = i;
-    if (n == -1)
-        return NotFound;
-    else
-        posts.erase(posts.begin() + n);
-    n = -1;
-    for (int i = 0; i < forms.size(); i++)
+    int form_index = -1;
+    for (int i = 0; i < (int)forms.size(); i++)
         if (forms[i].id == input_id)
-            n = i;
-    if (n == -1)
+            form_index = i;
+    if (form_index == -1)
         return NotFound;
-    string answer;
-    int r;
-    while (r < forms[n].requests.size())
+
+    FORM form = forms[form_index];
+    cout << "We have received " << form.requests.size() << " requests for the teaching assistant position" << endl;
+    for (int i = 0; i < (int)form.requests.size();)
     {
-        cout << forms[n].requests[r]->id << SPACE << forms[n].requests[r]->name << SPACE << dynamic_cast<Student *>(forms[n].requests[r])->semester << string(1, COLON) << SPACE;
-        cin >> answer;
-        if (answer == "accepted.")
+        Student *candidate = form.requests[i];
+        cout << candidate->id << SPACE << candidate->name << SPACE << candidate->semester << string(1, COLON) << SPACE;
+        string answer;
+        if (!(cin >> answer))
         {
-            forms[n].form_class->send_notifications(CLOSE_FORM_notif + answer);
-            forms[n].form_class->new_teacher_assistant(forms[n].requests[r]);
-            r++;
+            answer = "reject";
+            cin.clear();
         }
-        if (answer == "rejected")
+        if (answer == "accept")
         {
-            forms[n].form_class->send_notifications(CLOSE_FORM_notif + answer);
-            r++;
+            form.form_class->new_teacher_assistant(candidate);
+            candidate->receive_notification(form.form_class->id, form.form_class->course->name, string(CLOSE_FORM_notif) + "accepted.");
+            i++;
+        }
+        else if (answer == "reject")
+        {
+            candidate->receive_notification(form.form_class->id, form.form_class->course->name, string(CLOSE_FORM_notif) + "rejected.");
+            i++;
+        }
+        else
+        {
+            cout << endl;
         }
     }
-    forms.erase(forms.begin() + n);
-    return Ok;
+
+    for (int i = 0; i < (int)posts.size(); i++)
+        if (posts[i].id == input_id)
+        {
+            posts.erase(posts.begin() + i);
+            break;
+        }
+    forms.erase(forms.begin() + form_index);
+    return JustInformation;
 }
