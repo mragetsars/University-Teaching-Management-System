@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>UTMS - Colors</title>
+  <style>
+    :root {
+      --primary-color: #00455a;
+      --secondary-color: #003342;
+      --text-color: #cccccc;
+      --bg-color: #111111;
+      --form-bg-color: #000000;
+    }
+
+    body {
+      font-family: 'Arial', sans-serif;
+      margin: 0;
+      padding: 0;
+      height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-color);
+      background-color: var(--bg-color);
+      transition: background-color 0.3s;
+    }
+
+    .theme {
+      --primary-color: #2981b8;
+      --secondary-color: #006d8f;
+      --text-color: #222222;
+      --bg-color: #dddddd;
+      --form-bg-color: #ffffff;
+    }
+
+    .container {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+
+    .dashboard {
+      width: 80%;
+      height: 80%;
+      background-color: var(--form-bg-color);
+      border-radius: 15px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+      overflow: hidden;
+      display: flex;
+    }
+
+    .sidebar {
+      width: 150px;
+      background-color: var(--primary-color);
+      padding: 20px;
+    }
+
+    .sidebar div {
+      font-size: 1.5rem;
+      padding: 10px;
+      color: var(--text-color);
+      ;
+      border-radius: 5px;
+      margin-bottom: 10px;
+      cursor: pointer;
+    }
+
+    .sidebar div:hover {
+      background-color: var(--secondary-color);
+    }
+
+    .box {
+      width: 30%;
+      padding: 25rem;
+      display: flex;
+      border-radius: 10px;
+      align-items: center;
+      flex-direction: column;
+      justify-content: center;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      background: var(--form-bg-color);
+      transition: background-color 0.3s;
+    }
+
+    .box img {
+      width: 200px;
+      height: 200px;
+      border-radius: 50%;
+      overflow: hidden;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .box div {
+      font-size: 20rem;
+      margin-bottom: 1rem;
+      color: var(--primary-color);
+      transition: color 0.3s;
+    }
+
+    .box input {
+      width: 95%;
+      padding: 1rem;
+      font-size: 1rem;
+      margin-top: 1rem;
+      border-radius: 5px;
+      border: none;
+      cursor: pointer;
+      color: var(--text-color);
+      border: 1px solid var(--bg-color);
+      background-color: var(--bg-color);
+      transition: background-color 0.3s;
+    }
+
+    .box button {
+      width: 100%;
+      padding: 1rem;
+      font-size: 1rem;
+      margin-top: 1rem;
+      border-radius: 5px;
+      border: none;
+      cursor: pointer;
+      color: var(--text-color);
+      background-color: var(--primary-color);
+      transition: background-color 0.3s;
+    }
+
+    .box button:hover {
+      background-color: var(--secondary-color);
+    }
+
+    .box a {
+      width: 100%;
+    }
+
+    .theme-change {
+      position: fixed;
+      top: 1rem;
+      right: 1rem;
+      border-radius: 5px;
+      padding: 0.5rem 1rem;
+      border: none;
+      cursor: pointer;
+      color: var(--text-color);
+      background: var(--primary-color);
+      transition: background-color 0.3s;
+    }
+
+    .theme-change:hover {
+      background-color: var(--secondary-color);
+    }
+  </style>
+</head>
+
+<body>
+  <div class="dashboard">
+    <div class="sidebar">
+      <div class="sidebar-option" onclick="window.location.href='/home'">Home</div>
+      <div class="sidebar-option" onclick="window.location.href='/rand'">Random</div>
+      <div class="sidebar-option" onclick="window.location.href='/up'">Upload</div>
+      <!-- <div class="sidebar-option" onclick="window.location.href='/colors'">Colors</div> -->
+      <div class="sidebar-option" onclick="window.location.href='/music'">Music</div>
+      <div class="sidebar-option" onclick="window.location.href='/logout'">Logout</div>
+    </div>
+    <form class="box" action="/colors">
+        <label><input type="radio" name="color" value="red" checked>Red</label>
+        <label><input type="radio" name="color" value="navy">Navy</label>
+        <label><input type="radio" name="color" value="green">Green</label>
+      <h1>Your name:</h1>
+        <input type="text" name="name">
+        <button type="submit">Submit</button>
+    </form>
+
+    <% if (context["color"]=="red" ) { %>
+      <div style="color: red;font-size: 5rem;">
+        <% cout << context["name"]; %>
+      </div>
+      <% } else if (context["color"]=="navy" ) { %>
+        <div style="color: navy;font-size: 5rem;">
+          <% cout << context["name"]; %>
+        </div>
+        <% } else if (context["color"]=="green" ) { %>
+          <div style="color: green;font-size: 5rem;">
+            <% cout << context["name"]; %>
+          </div>
+          <% } %>
+  </div>
+  <button type="button" class="theme-change">Change Theme</button>
+
+  <script>
+    const toggleThemeBtn = document.querySelector('.theme-change');
+    toggleThemeBtn.addEventListener('click', () => {
+      document.body.classList.toggle('theme');
+    });
+    document.getElementById('imageInput').addEventListener('change', function (event) {
+      const file = event.target.files[0];
+      const reader = new FileReader();
+      reader.onload = function (e) {
+        const img = document.createElement('img');
+        img.src = e.target.result;
+        document.getElementById('imageContainer').appendChild(img);
+      };
+      reader.readAsDataURL(file);
+    });
+  </script>
+</body>
+
+</html>

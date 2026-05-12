@@ -1,0 +1,15 @@
+POST login ? id 810102576 password Ragetsar84@
+POST connect ? id 810102342
+POST post ? title "Hi hiui   !" message "Hello W  or  d!   YESER"
+POST logout ?
+POST login ? id 810102342 password meoow
+GET notification ?
+GET post ? id 810102576 post_id 1
+
+make clean
+make
+./utms.out input_majors.csv input_students.csv input_courses.csv input_professors.csv < input_input.txt > output_output.txt
+./utms.out data_majors.csv data_students.csv data_courses.csv data_professors.csv
+
+POST course_offer ? course_id 1 professor_id 810420432 capacity 70 time Sunday:13-15 exam_date 1403/4/4 class_number 2
+POST login ? id 0 password UT_account

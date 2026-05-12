@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>UTMS - 404</title>
+  <style>
+    :root {
+      --primary-color: #00455a;
+      --secondary-color: #00455a7a;
+      --text-color: #cccccc;
+      --bg-color: #111111;
+      --form-bg-color: #000000;
+    }
+
+    body {
+      font-family: 'Arial', sans-serif;
+      margin: 0;
+      padding: 0;
+      height: 100vh;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-color);
+      background-color: var(--bg-color);
+      transition: background-color 0.3s;
+    }
+
+    .theme {
+      --primary-color: #0096c4;
+      --secondary-color: #0096c480;
+      --text-color: #222222;
+      --bg-color: #dddddd;
+      --form-bg-color: #ffffff;
+    }
+
+    .UTMS-logo {
+      font-size: 5rem;
+      margin-bottom: 1rem;
+      color: var(--text-color);
+      transition: color 0.3s;
+    }
+
+    .container {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+
+    .box {
+      width: 30%;
+      padding: 2rem;
+      display: flex;
+      border-radius: 10px;
+      align-items: center;
+      flex-direction: column;
+      justify-content: center;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      background: var(--form-bg-color);
+      transition: background-color 0.3s;
+    }
+
+    .box img {
+      border-radius: 50%;
+      width: 150px;
+      height: 150px;
+      object-fit: cover;
+      margin-bottom: 20px;
+    }
+
+    .box div {
+      font-size: 20rem;
+      margin-bottom: 1rem;
+      color: var(--primary-color);
+      transition: color 0.3s;
+    }
+
+    .box input {
+      width: 95%;
+      padding: 1rem;
+      font-size: 1rem;
+      margin-top: 1rem;
+      border-radius: 5px;
+      border: none;
+      cursor: pointer;
+      color: var(--text-color);
+      border: 1px solid var(--bg-color);
+      background-color: var(--bg-color);
+      transition: background-color 0.3s;
+    }
+
+    .box button {
+      width: 100%;
+      padding: 1rem;
+      font-size: 1rem;
+      margin-top: 1rem;
+      border-radius: 5px;
+      border: none;
+      cursor: pointer;
+      color: var(--text-color);
+      background-color: var(--primary-color);
+      transition: background-color 0.3s;
+    }
+
+    .box button:hover {
+      background-color: var(--secondary-color);
+    }
+
+    .box a {
+      width: 100%;
+    }
+
+    .theme-change {
+      position: fixed;
+      top: 1rem;
+      right: 1rem;
+      border-radius: 5px;
+      padding: 0.5rem 1rem;
+      border: none;
+      cursor: pointer;
+      color: var(--text-color);
+      background: var(--primary-color);
+      transition: background-color 0.3s;
+    }
+
+    .theme-change:hover {
+      background-color: var(--secondary-color);
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <img src="/UTMS.png" alt="Home Logo" style="width:23vh">
+    <div class="UTMS-logo">UTMS</div>
+    <div class="box">
+      <div>404</div>
+      <p>ERROR : Requested page was not found!</p>
+    </div>
+  </div>
+  <button class="theme-change">Change Theme</button>
+
+  <script>
+    const toggleThemeBtn = document.querySelector('.theme-change');
+    toggleThemeBtn.addEventListener('click', () => {
+      document.body.classList.toggle('theme');
+    });
+  </script>
+</body>
+
+</html>
