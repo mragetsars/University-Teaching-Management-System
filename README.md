@@ -137,7 +137,14 @@ You can also pipe commands directly:
 cat tests/smoke_input.txt | ./out.utms data_majors.csv data_students.csv data_courses.csv data_professors.csv --cli
 ```
 
-**4. Run in web mode**
+**4. Optional smoke tests**
+
+```bash
+./scripts/run_smoke_tests.sh
+./scripts/run_web_smoke_tests.sh
+```
+
+**5. Run in web mode**
 
 ```bash
 ./out.utms data_majors.csv data_students.csv data_courses.csv data_professors.csv --web
