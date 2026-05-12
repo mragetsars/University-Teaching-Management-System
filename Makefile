@@ -3,7 +3,7 @@ CXXFLAGS = -std=c++20 -I./includes -Wall -Wextra -pedantic -Wno-unused-parameter
 SRCDIR = sources
 OBJDIR = objects
 BINDIR = .
-EXECUTABLE = $(BINDIR)/utms.out
+EXECUTABLE = $(BINDIR)/out.utms
 
 SOURCES := $(wildcard $(SRCDIR)/*.cpp)
 OBJECTS := $(patsubst $(SRCDIR)/%.cpp,$(OBJDIR)/%.o,$(SOURCES))
@@ -13,18 +13,19 @@ all: $(EXECUTABLE)
 
 $(EXECUTABLE): $(OBJECTS)
 	$(CXX) $(CXXFLAGS) -o $@ $^
+	ln -sf out.utms utms.out
 
 $(OBJDIR)/%.o: $(SRCDIR)/%.cpp $(HEADERS)
 	mkdir -p $(OBJDIR)
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 run-cli: all
-	./utms.out data_majors.csv data_students.csv data_courses.csv data_professors.csv --cli
+	./out.utms data_majors.csv data_students.csv data_courses.csv data_professors.csv --cli
 
 run-web: all
-	./utms.out data_majors.csv data_students.csv data_courses.csv data_professors.csv --web
+	./out.utms data_majors.csv data_students.csv data_courses.csv data_professors.csv --web
 
 clean:
-	rm -rf $(OBJDIR) $(EXECUTABLE)
+	rm -rf $(OBJDIR) $(EXECUTABLE) utms.out
 
 .PHONY: all clean run-cli run-web

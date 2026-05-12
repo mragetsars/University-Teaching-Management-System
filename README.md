@@ -20,7 +20,7 @@ The system combines a simplified educational management service with a social ne
 - ✅ **Social-media layer:** Publish personal posts, connect users bidirectionally, browse personal pages, and receive chronological notifications.
 - ✅ **Teaching-assistant workflow:** Professors can publish TA forms, students can submit requests, and professors can accept or reject applicants interactively.
 - ✅ **Course announcement channels:** Each course offering has a dedicated channel where professors and accepted TAs can post announcements for enrolled users.
-- ✅ **Web user interface:** A browser-accessible dashboard and command console are available for interacting with the same application logic.
+- ✅ **Complete web user interface:** A browser-accessible dashboard provides graphical pages and forms for the project workflows, so normal usage no longer requires the CLI.
 - ✅ **Clean C++ design:** The codebase is organized as a multi-file C++20 project with domain classes, CSV input handling, terminal parsing, and web handlers separated from the core model.
 
 ## System Architecture & Phases
@@ -48,14 +48,16 @@ The second phase extends the core engine with course channels, teaching-assistan
 
 ### 3️⃣ Phase 3: Web Interface
 
-The third phase adds a lightweight HTTP interface on top of the same command engine.
+The third phase adds a lightweight HTTP interface on top of the same UTMS engine. The temporary demo pages from the starter web project were removed and replaced by role-aware pages matching the assignment requirements.
 
-- `/` provides the login page.
-- `/home` shows the dashboard for the currently logged-in user.
-- `/console` exposes a CLI-compatible web command console for all supported UTMS commands.
-- `/logout` signs out the current user.
+- `/` provides the login page and preserves the original UTMS login visual style.
+- `/home` shows a dashboard customized for students, professors, and the system manager.
+- Students can enroll in courses, drop courses, view registered courses, browse course channels, and request TA positions through web forms.
+- Professors can publish course-channel posts, create TA forms, review applicants, and close TA forms through web pages.
+- The system manager can create new course offerings from a graphical form.
+- All ordinary users can publish posts with optional PNG images, update/delete profile photos, browse personal pages, connect to users, and read notifications.
 
-The web interface intentionally delegates to the same `Instruction_Handler` and parser used by the terminal version, keeping the business logic centralized and avoiding duplicate behavior.
+The web interface delegates to the same `Instruction_Handler` business rules used by the terminal version, keeping the core behavior centralized while providing a full graphical workflow.
 
 ## Repository Structure
 
@@ -89,8 +91,8 @@ UTMS/
 ├── web/                            # Static web assets and HTML pages
 │   ├── UTMS.png
 │   ├── login.html
-│   ├── home.html
-│   └── ...
+│   ├── login.html                   # Login page style reference
+│   └── uploads/                     # Runtime PNG uploads
 ├── Makefile                        # Build configuration
 ├── LICENSE                         # MIT License
 └── README.md                       # Project documentation
@@ -115,28 +117,30 @@ sudo apt-get install build-essential make
 make clean && make
 ```
 
-The executable is generated as:
+The executable required by the third phase is generated as:
 
 ```bash
-./utms.out
+./out.utms
 ```
+
+A compatibility symlink named `utms.out` is also created by the Makefile.
 
 **3. Run in terminal mode**
 
 ```bash
-./utms.out data_majors.csv data_students.csv data_courses.csv data_professors.csv --cli
+./out.utms data_majors.csv data_students.csv data_courses.csv data_professors.csv --cli
 ```
 
 You can also pipe commands directly:
 
 ```bash
-cat _input.txt | ./utms.out data_majors.csv data_students.csv data_courses.csv data_professors.csv --cli
+cat tests/smoke_input.txt | ./out.utms data_majors.csv data_students.csv data_courses.csv data_professors.csv --cli
 ```
 
 **4. Run in web mode**
 
 ```bash
-./utms.out data_majors.csv data_students.csv data_courses.csv data_professors.csv --web
+./out.utms data_majors.csv data_students.csv data_courses.csv data_professors.csv --web
 ```
 
 Then open:
@@ -145,19 +149,24 @@ Then open:
 http://localhost:5000
 ```
 
-## Command Examples
+## Web Workflow Coverage
 
-```text
-POST login ? id 0 password UT_account
-POST course_offer ? course_id 1 professor_id 810420432 capacity 70 time Sunday:13-15 exam_date 1403/4/4 class_number 2
-POST logout ?
+The web UI contains dedicated pages for the operations required in the third phase:
 
-POST login ? id 810102612 password ImtheproblemItsme
-GET courses ?
-PUT my_courses ? id 1
-POST post ? title "Hello UTMS" message "Advanced Programming project completed"
-GET notification ?
-```
+- Login/logout and a role-aware dashboard
+- Create personal posts with optional PNG images
+- Save or delete profile photos
+- View course offerings
+- Search and display personal pages with profile images and post images
+- Enroll in and drop course offerings as a student
+- View registered courses as a student
+- Create course offerings as the system manager
+- Browse course channels and read channel posts
+- Publish course-channel posts as a professor or accepted TA
+- Create, request, review, and close TA forms
+- Connect to users and read notifications
+
+The CLI remains available for automated regression testing and compatibility with the earlier phases.
 
 ## Implementation Notes
 

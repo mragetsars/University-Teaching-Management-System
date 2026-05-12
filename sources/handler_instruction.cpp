@@ -643,3 +643,197 @@ ANSWER Instruction_Handler::run(QUESTION input)
     output.output = NotFound;
     return output;
 }
+
+bool Instruction_Handler::current_user_is_student() const
+{
+    return dynamic_cast<Student *>(user) != nullptr;
+}
+
+bool Instruction_Handler::current_user_is_professor() const
+{
+    return dynamic_cast<Professor *>(user) != nullptr;
+}
+
+bool Instruction_Handler::current_user_is_system_manager() const
+{
+    return dynamic_cast<System_Manager *>(user) != nullptr;
+}
+
+string Instruction_Handler::current_user_type_label() const
+{
+    if (current_user_is_student())
+        return "Student";
+    if (current_user_is_professor())
+        return "Professor";
+    if (current_user_is_system_manager())
+        return "System Manager";
+    return "Guest";
+}
+
+static string major_name_from_id(const vector<MAJOR> &majors, const string &major_id)
+{
+    for (auto major : majors)
+        if (major.id == major_id)
+            return major.name;
+    return EMPTYSTRING;
+}
+
+static WEB_CLASS_VIEW make_class_view(Class &input_class, User *current_user)
+{
+    WEB_CLASS_VIEW view;
+    view.id = input_class.id;
+    view.name = input_class.course == nullptr ? EMPTYSTRING : input_class.course->name;
+    view.capacity = int_to_str(input_class.capacity);
+    view.professor_name = input_class.teacher == nullptr ? EMPTYSTRING : input_class.teacher->name;
+    view.professor_id = input_class.teacher == nullptr ? EMPTYSTRING : input_class.teacher->id;
+    view.time = time_to_string(input_class.class_time);
+    view.exam_date = date_to_string(input_class.exam_date);
+    view.class_number = int_to_str(input_class.class_number);
+    view.current_user_can_view = current_user != nullptr && input_class.has_accsess(current_user, 1);
+    view.current_user_can_post = current_user != nullptr && input_class.has_accsess(current_user, 2);
+    view.channel_posts = input_class.get_channel_posts();
+    return view;
+}
+
+vector<WEB_USER_MINI_VIEW> Instruction_Handler::web_all_users()
+{
+    vector<WEB_USER_MINI_VIEW> output;
+    output.push_back({system_manager.id, system_manager.name, "System Manager"});
+    for (auto &student : students)
+        output.push_back({student.id, student.name, "Student"});
+    for (auto &professor : professors)
+        output.push_back({professor.id, professor.name, "Professor"});
+    return output;
+}
+
+vector<WEB_COURSE_DEF_VIEW> Instruction_Handler::web_course_definitions()
+{
+    vector<WEB_COURSE_DEF_VIEW> output;
+    for (auto &course : courses)
+        output.push_back({course.id, course.name, course.credit, course.prerequisite, course.major_ids});
+    return output;
+}
+
+vector<WEB_USER_MINI_VIEW> Instruction_Handler::web_professors()
+{
+    vector<WEB_USER_MINI_VIEW> output;
+    for (auto &professor : professors)
+        output.push_back({professor.id, professor.name, "Professor"});
+    return output;
+}
+
+vector<WEB_CLASS_VIEW> Instruction_Handler::web_all_classes()
+{
+    vector<WEB_CLASS_VIEW> output;
+    for (auto &input_class : classes)
+        output.push_back(make_class_view(input_class, user));
+    return output;
+}
+
+vector<WEB_CLASS_VIEW> Instruction_Handler::web_my_student_classes()
+{
+    vector<WEB_CLASS_VIEW> output;
+    if (!current_user_is_student())
+        return output;
+    for (auto &input_class : classes)
+        if (input_class.has_student(user->id))
+            output.push_back(make_class_view(input_class, user));
+    return output;
+}
+
+bool Instruction_Handler::web_class_view(const string &id, WEB_CLASS_VIEW *output)
+{
+    Class *class_ptr = nullptr;
+    if (!find_class_by_id(&class_ptr, id) || output == nullptr)
+        return false;
+    *output = make_class_view(*class_ptr, user);
+    return true;
+}
+
+bool Instruction_Handler::web_user_view(const string &id, WEB_USER_VIEW *output)
+{
+    User *user_ptr = nullptr;
+    if (!find_user_by_id(&user_ptr, id) || output == nullptr)
+        return false;
+
+    output->id = user_ptr->id;
+    output->name = user_ptr->name;
+    output->profile_photo_address = user_ptr->profile_photo();
+    output->posts = user_ptr->posts;
+    output->major = EMPTYSTRING;
+    output->semester = EMPTYSTRING;
+    output->position = EMPTYSTRING;
+    output->course_names.clear();
+
+    if (dynamic_cast<System_Manager *>(user_ptr) != nullptr)
+    {
+        output->type_label = "System Manager";
+    }
+    else if (Student *student_ptr = dynamic_cast<Student *>(user_ptr))
+    {
+        output->type_label = "Student";
+        output->major = major_name_from_id(majors, student_ptr->major_id);
+        output->semester = int_to_str(student_ptr->semester);
+        for (auto &input_class : classes)
+            if (input_class.has_student(student_ptr->id))
+                output->course_names.push_back(input_class.course->name);
+    }
+    else if (Professor *professor_ptr = dynamic_cast<Professor *>(user_ptr))
+    {
+        output->type_label = "Professor";
+        output->major = major_name_from_id(majors, professor_ptr->major_id);
+        output->position = professor_ptr->position_name;
+        for (auto &input_class : classes)
+            if (input_class.teacher != nullptr && input_class.teacher->id == professor_ptr->id)
+                output->course_names.push_back(input_class.course->name);
+    }
+    return true;
+}
+
+static WEB_TA_FORM_VIEW make_form_view(const Professor &professor, const FORM &form)
+{
+    WEB_TA_FORM_VIEW view;
+    view.id = form.id;
+    view.professor_id = professor.id;
+    view.professor_name = professor.name;
+    view.course_id = form.form_class == nullptr ? EMPTYSTRING : form.form_class->id;
+    view.course_name = (form.form_class == nullptr || form.form_class->course == nullptr) ? EMPTYSTRING : form.form_class->course->name;
+    view.message = form.message;
+    for (auto request : form.requests)
+        if (request != nullptr)
+            view.requests.push_back({request->id, request->name, request->semester});
+    return view;
+}
+
+vector<WEB_TA_FORM_VIEW> Instruction_Handler::web_all_ta_forms()
+{
+    vector<WEB_TA_FORM_VIEW> output;
+    for (auto &professor : professors)
+        for (auto &form : professor.forms)
+            output.push_back(make_form_view(professor, form));
+    return output;
+}
+
+vector<WEB_TA_FORM_VIEW> Instruction_Handler::web_my_ta_forms()
+{
+    vector<WEB_TA_FORM_VIEW> output;
+    if (!current_user_is_professor())
+        return output;
+    for (auto &professor : professors)
+        if (professor.id == user->id)
+            for (auto &form : professor.forms)
+                output.push_back(make_form_view(professor, form));
+    return output;
+}
+
+ANSWER Instruction_Handler::web_close_ta_form(int form_id, const map<string, string> &decisions)
+{
+    ANSWER output;
+    if (!is_login || dynamic_cast<Professor *>(user) == nullptr)
+    {
+        output.output = PermissionDenied;
+        return output;
+    }
+    output.output = dynamic_cast<Professor *>(user)->close_form_with_decisions(form_id, decisions, &output.info);
+    return output;
+}

@@ -29,6 +29,7 @@ public:
     virtual response show_post(vector<string> *output, int input_id) override;
     response new_form(Class *input_class, string input_message);
     response close_form(int input_id);
+    response close_form_with_decisions(int input_id, const map<string, string> &decisions, vector<string> *output);
     response new_request(Student *input_user, int input_id);
     void offer_class(Class *input_class);
     bool owns_class(Class *input_class) const;

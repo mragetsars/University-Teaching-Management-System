@@ -1,5 +1,4 @@
-#ifndef HANDLERS_HPP_INCLUDE
-#define HANDLERS_HPP_INCLUDE
+#pragma once
 
 #include <map>
 #include <string>
@@ -10,39 +9,45 @@
 #include "handler_instruction.hpp"
 #include "io_terminal.hpp"
 
+enum class WebPage
+{
+    Home,
+    NewPost,
+    ProfilePhoto,
+    Courses,
+    PersonalPage,
+    UserPost,
+    Connect,
+    Notifications,
+    MyCourses,
+    EnrollCourse,
+    DropCourse,
+    CourseOffer,
+    CourseChannel,
+    CoursePost,
+    NewCoursePost,
+    NewTaForm,
+    TaRequest,
+    CloseTaForm
+};
+
+enum class WebAction
+{
+    NewPost,
+    DeletePost,
+    SaveProfilePhoto,
+    DeleteProfilePhoto,
+    Connect,
+    EnrollCourse,
+    DropCourse,
+    CourseOffer,
+    NewCoursePost,
+    NewTaForm,
+    TaRequest,
+    CloseTaForm
+};
+
 class LoginPageHandler : public RequestHandler
-{
-public:
-    Response *callback(Request *) override;
-};
-
-class HomeHandler : public RequestHandler
-{
-private:
-    Instruction_Handler *ih_;
-
-public:
-    HomeHandler(Instruction_Handler *ih);
-    Response *callback(Request *) override;
-};
-
-class ConsolePageHandler : public RequestHandler
-{
-public:
-    Response *callback(Request *) override;
-};
-
-class ConsoleCommandHandler : public RequestHandler
-{
-private:
-    Instruction_Handler *ih_;
-
-public:
-    ConsoleCommandHandler(Instruction_Handler *ih);
-    Response *callback(Request *) override;
-};
-
-class RandomNumberHandler : public RequestHandler
 {
 public:
     Response *callback(Request *) override;
@@ -68,21 +73,30 @@ public:
     Response *callback(Request *) override;
 };
 
-class UploadHandler : public RequestHandler
+class WebPageHandler : public RequestHandler
 {
 private:
     Instruction_Handler *ih_;
+    WebPage page_;
 
 public:
-    UploadHandler(Instruction_Handler *ih);
+    WebPageHandler(Instruction_Handler *ih, WebPage page);
     Response *callback(Request *) override;
 };
 
-class ColorHandler : public TemplateHandler
+class WebActionHandler : public RequestHandler
 {
+private:
+    Instruction_Handler *ih_;
+    WebAction action_;
+
 public:
-    ColorHandler(const std::string &filePath);
-    std::map<std::string, std::string> handle(Request *req) override;
+    WebActionHandler(Instruction_Handler *ih, WebAction action);
+    Response *callback(Request *) override;
 };
 
-#endif // HANDLERS_HPP_INCLUDE
+class UploadedAssetHandler : public RequestHandler
+{
+public:
+    Response *callback(Request *) override;
+};

@@ -8,6 +8,68 @@
 #include "class_professor.hpp"
 #include "class_systemmanager.hpp"
 
+struct WEB_USER_MINI_VIEW
+{
+    string id;
+    string name;
+    string type_label;
+};
+
+struct WEB_COURSE_DEF_VIEW
+{
+    string id;
+    string name;
+    int credit = 0;
+    int prerequisite = 0;
+    vector<string> major_ids;
+};
+
+struct WEB_CLASS_VIEW
+{
+    string id;
+    string name;
+    string capacity;
+    string professor_name;
+    string professor_id;
+    string time;
+    string exam_date;
+    string class_number;
+    bool current_user_can_view = false;
+    bool current_user_can_post = false;
+    vector<CHANNEL_POST> channel_posts;
+};
+
+struct WEB_USER_VIEW
+{
+    string id;
+    string name;
+    string type_label;
+    string major;
+    string semester;
+    string position;
+    string profile_photo_address;
+    vector<string> course_names;
+    vector<POST> posts;
+};
+
+struct WEB_TA_REQUEST_VIEW
+{
+    string student_id;
+    string student_name;
+    int semester = 0;
+};
+
+struct WEB_TA_FORM_VIEW
+{
+    int id = 0;
+    string professor_id;
+    string professor_name;
+    string course_id;
+    string course_name;
+    string message;
+    vector<WEB_TA_REQUEST_VIEW> requests;
+};
+
 class Instruction_Handler
 {
 private:
@@ -51,6 +113,21 @@ public:
     Instruction_Handler(DATA input_data);
     ANSWER run(QUESTION input);
     bool logged_in() const;
+    bool current_user_is_student() const;
+    bool current_user_is_professor() const;
+    bool current_user_is_system_manager() const;
     string current_user_id() const;
     string current_user_name() const;
+    string current_user_type_label() const;
+
+    vector<WEB_USER_MINI_VIEW> web_all_users();
+    vector<WEB_COURSE_DEF_VIEW> web_course_definitions();
+    vector<WEB_USER_MINI_VIEW> web_professors();
+    vector<WEB_CLASS_VIEW> web_all_classes();
+    vector<WEB_CLASS_VIEW> web_my_student_classes();
+    bool web_class_view(const string &id, WEB_CLASS_VIEW *output);
+    bool web_user_view(const string &id, WEB_USER_VIEW *output);
+    vector<WEB_TA_FORM_VIEW> web_all_ta_forms();
+    vector<WEB_TA_FORM_VIEW> web_my_ta_forms();
+    ANSWER web_close_ta_form(int form_id, const map<string, string> &decisions);
 };

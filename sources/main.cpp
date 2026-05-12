@@ -14,16 +14,45 @@ void mapServerPaths(Instruction_Handler *ih, Server &server)
     server.setNotFoundErrPage("web/404.html");
     server.get("/", new LoginPageHandler());
     server.post("/", new LoginHandler(ih));
-    server.get("/home", new HomeHandler(ih));
-    server.get("/console", new ConsolePageHandler());
-    server.post("/console", new ConsoleCommandHandler(ih));
-    server.get("/UTMS.png", new ShowImage("web/UTMS.png"));
-    server.get("/up", new ShowPage("web/upload_form.html"));
-    server.post("/up", new UploadHandler(ih));
-    server.get("/colors", new ColorHandler("web/colors.html"));
-    server.get("/music", new ShowPage("web/music.html"));
-    server.get("/music/moonlight.mp3", new ShowFile("web/moonlight.mp3", "audio/mpeg"));
     server.get("/logout", new LogoutHandler(ih));
+    server.get("/UTMS.png", new ShowImage("web/UTMS.png"));
+    server.get("/asset", new UploadedAssetHandler());
+
+    server.get("/home", new WebPageHandler(ih, WebPage::Home));
+    server.get("/post/new", new WebPageHandler(ih, WebPage::NewPost));
+    server.post("/post/new", new WebActionHandler(ih, WebAction::NewPost));
+    server.get("/profile_photo", new WebPageHandler(ih, WebPage::ProfilePhoto));
+    server.post("/profile_photo", new WebActionHandler(ih, WebAction::SaveProfilePhoto));
+    server.post("/profile_photo/delete", new WebActionHandler(ih, WebAction::DeleteProfilePhoto));
+
+    server.get("/courses", new WebPageHandler(ih, WebPage::Courses));
+    server.get("/courses/add", new WebPageHandler(ih, WebPage::CourseOffer));
+    server.post("/courses/add", new WebActionHandler(ih, WebAction::CourseOffer));
+
+    server.get("/personal_page", new WebPageHandler(ih, WebPage::PersonalPage));
+    server.get("/post", new WebPageHandler(ih, WebPage::UserPost));
+    server.post("/post/delete", new WebActionHandler(ih, WebAction::DeletePost));
+    server.get("/connect", new WebPageHandler(ih, WebPage::Connect));
+    server.post("/connect", new WebActionHandler(ih, WebAction::Connect));
+    server.get("/notifications", new WebPageHandler(ih, WebPage::Notifications));
+
+    server.get("/my_courses", new WebPageHandler(ih, WebPage::MyCourses));
+    server.get("/my_courses/add", new WebPageHandler(ih, WebPage::EnrollCourse));
+    server.post("/my_courses/add", new WebActionHandler(ih, WebAction::EnrollCourse));
+    server.get("/my_courses/delete", new WebPageHandler(ih, WebPage::DropCourse));
+    server.post("/my_courses/delete", new WebActionHandler(ih, WebAction::DropCourse));
+
+    server.get("/course_channel", new WebPageHandler(ih, WebPage::CourseChannel));
+    server.get("/course_post", new WebPageHandler(ih, WebPage::CoursePost));
+    server.get("/course_post/new", new WebPageHandler(ih, WebPage::NewCoursePost));
+    server.post("/course_post/new", new WebActionHandler(ih, WebAction::NewCoursePost));
+
+    server.get("/ta_form/new", new WebPageHandler(ih, WebPage::NewTaForm));
+    server.post("/ta_form/new", new WebActionHandler(ih, WebAction::NewTaForm));
+    server.get("/ta_request", new WebPageHandler(ih, WebPage::TaRequest));
+    server.post("/ta_request", new WebActionHandler(ih, WebAction::TaRequest));
+    server.get("/ta_form/close", new WebPageHandler(ih, WebPage::CloseTaForm));
+    server.post("/ta_form/close", new WebActionHandler(ih, WebAction::CloseTaForm));
 }
 
 void run_cli(Instruction_Handler &instruction_handler)

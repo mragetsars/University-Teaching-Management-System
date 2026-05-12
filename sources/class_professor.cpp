@@ -159,3 +159,62 @@ response Professor::close_form(int input_id)
     forms.erase(forms.begin() + form_index);
     return JustInformation;
 }
+
+response Professor::close_form_with_decisions(int input_id, const map<string, string> &decisions, vector<string> *output)
+{
+    int form_index = -1;
+    for (int i = 0; i < (int)forms.size(); i++)
+        if (forms[i].id == input_id)
+            form_index = i;
+    if (form_index == -1)
+        return NotFound;
+
+    FORM form = forms[form_index];
+    if (output != nullptr)
+    {
+        output->push_back("We have received ");
+        output->push_back(int_to_str((int)form.requests.size()));
+        output->push_back(" requests for the teaching assistant position");
+        output->push_back(ENTER);
+    }
+
+    for (Student *candidate : form.requests)
+    {
+        string answer = "reject";
+        auto it = decisions.find(candidate->id);
+        if (it != decisions.end() && it->second == "accept")
+            answer = "accept";
+
+        if (output != nullptr)
+        {
+            output->push_back(candidate->id);
+            output->push_back(SPACE);
+            output->push_back(candidate->name);
+            output->push_back(SPACE);
+            output->push_back(int_to_str(candidate->semester));
+            output->push_back(string(1, COLON));
+            output->push_back(SPACE);
+            output->push_back(answer);
+            output->push_back(ENTER);
+        }
+
+        if (answer == "accept")
+        {
+            form.form_class->new_teacher_assistant(candidate);
+            candidate->receive_notification(form.form_class->id, form.form_class->course->name, string(CLOSE_FORM_notif) + "accepted.");
+        }
+        else
+        {
+            candidate->receive_notification(form.form_class->id, form.form_class->course->name, string(CLOSE_FORM_notif) + "rejected.");
+        }
+    }
+
+    for (int i = 0; i < (int)posts.size(); i++)
+        if (posts[i].id == input_id)
+        {
+            posts.erase(posts.begin() + i);
+            break;
+        }
+    forms.erase(forms.begin() + form_index);
+    return JustInformation;
+}

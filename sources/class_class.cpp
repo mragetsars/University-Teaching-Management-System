@@ -174,3 +174,8 @@ response Class::show_post(vector<string> *output, int input_id)
         }
     return NotFound;
 }
+
+vector<CHANNEL_POST> Class::get_channel_posts() const
+{
+    return channel_posts;
+}
