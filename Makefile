@@ -1,5 +1,6 @@
 CXX = g++
 CXXFLAGS = -std=c++20 -I./includes -Wall -Wextra -pedantic -Wno-unused-parameter -Wno-type-limits -Wno-implicit-fallthrough
+SANITIZE_FLAGS = -fsanitize=address,undefined -fno-omit-frame-pointer -g
 SRCDIR = sources
 OBJDIR = objects
 BINDIR = .
@@ -25,7 +26,11 @@ run-cli: all
 run-web: all
 	./out.utms data_majors.csv data_students.csv data_courses.csv data_professors.csv --web
 
+sanitize:
+	$(MAKE) clean
+	$(MAKE) CXXFLAGS="$(CXXFLAGS) $(SANITIZE_FLAGS)" all
+
 clean:
 	rm -rf $(OBJDIR) $(EXECUTABLE) utms.out
 
-.PHONY: all clean run-cli run-web
+.PHONY: all clean run-cli run-web sanitize

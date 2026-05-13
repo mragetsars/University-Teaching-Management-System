@@ -61,13 +61,42 @@ string basename_only(string path)
     return clean;
 }
 
+const string INVALID_UPLOAD = "__UTMS_INVALID_UPLOAD__";
+const string UPLOAD_PREFIX = "web/uploads/";
+
+bool is_png_data(const string &data)
+{
+    const unsigned char signature[] = {0x89, 'P', 'N', 'G', '\r', '\n', 0x1A, '\n'};
+    if (data.size() < sizeof(signature))
+        return false;
+    for (size_t i = 0; i < sizeof(signature); i++)
+        if ((unsigned char)data[i] != signature[i])
+            return false;
+    return true;
+}
+
+bool is_managed_upload_path(const string &path)
+{
+    return path.rfind(UPLOAD_PREFIX, 0) == 0 && basename_only(path) == path.substr(UPLOAD_PREFIX.size());
+}
+
+void remove_managed_upload(const string &path)
+{
+    if (is_managed_upload_path(path))
+        std::remove(path.c_str());
+}
+
+bool has_current_session(Instruction_Handler *ih, Request *req)
+{
+    return ih != nullptr && req != nullptr && ih->logged_in() && req->getSessionId() == ih->current_user_id();
+}
+
 string public_asset_src(const string &stored_path)
 {
     if (stored_path.empty())
         return EMPTYSTRING;
-    const string prefix = "web/uploads/";
-    if (stored_path.rfind(prefix, 0) == 0)
-        return "/asset?file=" + basename_only(stored_path.substr(prefix.size()));
+    if (stored_path.rfind(UPLOAD_PREFIX, 0) == 0)
+        return "/asset?file=" + basename_only(stored_path.substr(UPLOAD_PREFIX.size()));
     return stored_path;
 }
 
@@ -76,13 +105,15 @@ string save_uploaded_png(Request *req, const string &field, const string &prefix
     string data = req->getBodyParam(field);
     if (data.empty())
         return EMPTYSTRING;
-    std::filesystem::create_directories("web/uploads");
+    if (!is_png_data(data))
+        return INVALID_UPLOAD;
+    std::filesystem::create_directories(UPLOAD_PREFIX);
     static long long counter = 0;
     auto now = std::chrono::system_clock::now().time_since_epoch().count();
     string filename = prefix + "_" + to_string(now) + "_" + to_string(counter++) + ".png";
-    string path = "web/uploads/" + filename;
+    string path = UPLOAD_PREFIX + filename;
     if (!utils::writeToFile(data, path))
-        return EMPTYSTRING;
+        return INVALID_UPLOAD;
     return path;
 }
 
@@ -216,21 +247,54 @@ string sidebar(Instruction_Handler *ih, const string &active)
 string base_styles()
 {
     return R"CSS(
-    :root{--primary-color:#00455a;--secondary-color:#003342;--accent-color:#0096c4;--text-color:#cccccc;--bg-color:#111111;--panel-color:#000000;--card-color:#080808;--border-color:#20343b;--danger-color:#a83232;--success-color:#0b5f44;}
-    body.theme{--primary-color:#0096c4;--secondary-color:#006d8f;--accent-color:#00455a;--text-color:#222222;--bg-color:#dddddd;--panel-color:#ffffff;--card-color:#f8f8f8;--border-color:#b7cbd1;--danger-color:#a83232;--success-color:#0b7b55;}
-    *{box-sizing:border-box}body{font-family:Arial,sans-serif;margin:0;min-height:100vh;color:var(--text-color);background:var(--bg-color);transition:background-color .3s,color .3s;}a{color:inherit;text-decoration:none}.app{display:grid;grid-template-columns:260px minmax(0,1fr);min-height:100vh}.sidebar{background:var(--primary-color);padding:22px;display:flex;flex-direction:column;gap:18px;position:sticky;top:0;height:100vh;overflow:auto}.brand-mini{display:flex;gap:12px;align-items:center;margin-bottom:12px}.brand-mini img{width:56px;height:56px;border-radius:16px;object-fit:contain;background:transparent;display:block}.brand-mini strong{font-size:1.6rem;display:block}.brand-mini span{font-size:.85rem;opacity:.75}.nav-link,.logout{display:block;padding:12px 14px;margin:6px 0;border-radius:10px;background:transparent;transition:.2s}.nav-link:hover,.nav-link.active,.logout:hover{background:var(--secondary-color)}.nav-section{margin:18px 0 8px;font-size:.78rem;text-transform:uppercase;letter-spacing:.08em;opacity:.7}.content{padding:28px;max-width:1320px;width:100%;margin:0 auto}.topbar{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:22px}.topbar h1{margin:0;font-size:2rem}.theme-change{border-radius:8px;padding:.65rem 1rem;border:none;cursor:pointer;color:var(--text-color);background:var(--primary-color)}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:18px}.card{background:var(--panel-color);border:1px solid var(--border-color);border-radius:16px;padding:20px;margin-bottom:18px;box-shadow:0 12px 32px rgba(0,0,0,.15)}.card h2,.card h3{margin-top:0}.muted{opacity:.72}.chip{display:inline-block;padding:5px 9px;border-radius:999px;background:var(--primary-color);color:#fff;font-size:.82rem;margin:2px}.avatar{width:96px;height:96px;border-radius:50%;object-fit:cover;background:var(--secondary-color);border:3px solid var(--border-color)}.post-img{max-width:100%;border-radius:12px;margin-top:12px;border:1px solid var(--border-color)}label{display:block;margin-top:12px;margin-bottom:5px;font-weight:700}input,textarea,select{width:100%;padding:12px;border-radius:10px;border:1px solid var(--border-color);background:var(--card-color);color:var(--text-color)}textarea{min-height:110px;resize:vertical}button,.button{display:inline-block;border:0;border-radius:10px;background:var(--primary-color);color:#fff;font-weight:700;padding:12px 16px;cursor:pointer;margin-top:14px}.button.secondary,button.secondary{background:var(--secondary-color)}button.danger,.button.danger{background:var(--danger-color)}.actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center}.notice{border-radius:12px;padding:14px;margin-bottom:18px;border:1px solid var(--border-color);background:var(--panel-color)}.notice pre{white-space:pre-wrap;margin:10px 0 0}.notice.success{border-color:var(--success-color)}.notice.error{border-color:var(--danger-color)}.muted-box{opacity:.85}.table-wrap{overflow:auto}.table{width:100%;border-collapse:collapse}.table th,.table td{text-align:left;border-bottom:1px solid var(--border-color);padding:11px;vertical-align:top}.inline-form{display:inline}.empty{padding:28px;text-align:center;border:1px dashed var(--border-color);border-radius:14px}.hero{display:grid;grid-template-columns:auto minmax(0,1fr);gap:18px;align-items:center}.hero h2{margin:0}.login-body{display:flex;align-items:center;justify-content:center;min-height:100vh}.login-container{display:flex;flex-direction:column;justify-content:center;align-items:center;width:100%;padding:24px}.UTMS-logo{font-size:5rem;margin-bottom:1rem;color:var(--text-color)}.login-box{width:min(420px,92vw);padding:2rem;display:flex;border-radius:10px;align-items:center;flex-direction:column;justify-content:center;background:var(--panel-color);box-shadow:0 4px 18px rgba(0,0,0,.25)}.login-box input{margin-top:1rem}.login-box button{width:100%;font-size:1rem}.login-theme{position:fixed;top:1rem;right:1rem;border-radius:5px;padding:.5rem 1rem;border:none;cursor:pointer;color:var(--text-color);background:var(--primary-color)}@media(max-width:820px){.app{grid-template-columns:1fr}.sidebar{position:relative;height:auto}.content{padding:18px}.topbar{align-items:flex-start;flex-direction:column}.UTMS-logo{font-size:3.6rem}}
+    :root{
+        --primary-color:#004b61;--primary-rgb:0,75,97;--secondary-color:#063341;--accent-color:#00a6d6;
+        --text-color:#e8edf0;--muted-color:#9aaeb7;--bg-color:#0d1113;--panel-color:#050708;
+        --card-color:#0b1215;--border-color:#1b4754;--danger-color:#b83c3c;--success-color:#0c7a58;
+        --shadow:0 18px 45px rgba(0,0,0,.32);--radius:18px;
+    }
+    body.theme{
+        --primary-color:#0085ad;--primary-rgb:0,133,173;--secondary-color:#00617d;--accent-color:#004b61;
+        --text-color:#17242a;--muted-color:#516971;--bg-color:#e8eef1;--panel-color:#ffffff;
+        --card-color:#f7fafb;--border-color:#b8d0d8;--danger-color:#a83232;--success-color:#0b7456;
+        --shadow:0 18px 45px rgba(8,52,67,.16);
+    }
+    *{box-sizing:border-box}
+    body{font-family:Inter,Segoe UI,Arial,sans-serif;margin:0;min-height:100vh;color:var(--text-color);background:radial-gradient(circle at 16% -10%,rgba(var(--primary-rgb),.30),transparent 30rem),linear-gradient(135deg,var(--bg-color),#050607 68%);transition:background-color .3s,color .3s;line-height:1.5}
+    body.theme{background:radial-gradient(circle at 18% -10%,rgba(var(--primary-rgb),.18),transparent 28rem),linear-gradient(135deg,var(--bg-color),#f7fbfc 72%)}
+    a{color:inherit;text-decoration:none}.app{display:grid;grid-template-columns:280px minmax(0,1fr);min-height:100vh}
+    .sidebar{background:linear-gradient(180deg,var(--primary-color),#003748);padding:22px;display:flex;flex-direction:column;gap:18px;position:sticky;top:0;height:100vh;overflow:auto;box-shadow:10px 0 30px rgba(0,0,0,.20)}
+    .brand-mini{display:flex;gap:12px;align-items:center;margin-bottom:12px;color:#fff}.brand-mini img{width:58px;height:58px;object-fit:contain;background:transparent;display:block;filter:drop-shadow(0 8px 12px rgba(0,0,0,.22))}.brand-mini strong{font-size:1.62rem;display:block;letter-spacing:.02em}.brand-mini span{font-size:.86rem;opacity:.80}
+    .nav-link,.logout{display:flex;align-items:center;gap:10px;padding:12px 14px;margin:6px 0;border-radius:12px;background:transparent;transition:.2s;color:#f4fbfd}.nav-link:hover,.nav-link.active,.logout:hover{background:rgba(0,0,0,.24);transform:translateX(3px)}.logout{margin-top:auto;background:rgba(0,0,0,.16)}.nav-section{margin:18px 0 8px;font-size:.76rem;text-transform:uppercase;letter-spacing:.11em;opacity:.72;color:#d8eef5}
+    .content{padding:30px;max-width:1360px;width:100%;margin:0 auto}.topbar{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:24px}.topbar h1{margin:0;font-size:2.08rem;letter-spacing:-.03em}.topbar-actions{display:flex;align-items:center;gap:12px;flex-wrap:wrap}.user-badge{display:flex;align-items:center;gap:11px;padding:9px 12px;border-radius:999px;background:rgba(var(--primary-rgb),.12);border:1px solid var(--border-color)}.user-badge img,.user-badge .mini-avatar{width:38px;height:38px;border-radius:50%;object-fit:cover;background:var(--secondary-color);border:2px solid rgba(255,255,255,.08)}.user-badge strong{display:block;line-height:1.1}.user-badge span{display:block;color:var(--muted-color);font-size:.82rem}.theme-change{border-radius:999px;padding:.72rem 1rem;border:1px solid var(--border-color);cursor:pointer;color:#fff;background:var(--primary-color)}
+    .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));gap:18px}.card{background:linear-gradient(180deg,var(--panel-color),var(--card-color));border:1px solid var(--border-color);border-radius:var(--radius);padding:22px;margin-bottom:18px;box-shadow:var(--shadow)}.card h2,.card h3{margin-top:0;letter-spacing:-.02em}.card p{margin-bottom:1rem}.muted{color:var(--muted-color)}.chip{display:inline-block;padding:5px 10px;border-radius:999px;background:rgba(var(--primary-rgb),.88);color:#fff;font-size:.82rem;margin:3px}.avatar{width:104px;height:104px;border-radius:50%;object-fit:cover;background:linear-gradient(135deg,var(--secondary-color),var(--primary-color));border:3px solid var(--border-color);box-shadow:0 10px 24px rgba(0,0,0,.22)}.post-img{max-width:100%;border-radius:14px;margin-top:12px;border:1px solid var(--border-color);box-shadow:0 8px 18px rgba(0,0,0,.18)}
+    label{display:block;margin-top:12px;margin-bottom:6px;font-weight:700}input,textarea,select{width:100%;padding:12px 13px;border-radius:12px;border:1px solid var(--border-color);background:var(--card-color);color:var(--text-color);outline:none;transition:border-color .18s,box-shadow .18s}input:focus,textarea:focus,select:focus{border-color:var(--accent-color);box-shadow:0 0 0 3px rgba(var(--primary-rgb),.20)}textarea{min-height:120px;resize:vertical}input[type=file]{padding:10px;background:transparent}
+    button,.button{display:inline-block;border:0;border-radius:12px;background:linear-gradient(135deg,var(--primary-color),var(--accent-color));color:#fff;font-weight:800;padding:12px 16px;cursor:pointer;margin-top:14px;box-shadow:0 8px 18px rgba(0,0,0,.18);transition:.18s}button:hover,.button:hover{transform:translateY(-1px);filter:brightness(1.06)}.button.secondary,button.secondary{background:var(--secondary-color)}button.danger,.button.danger{background:var(--danger-color)}.actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center}.notice{border-radius:14px;padding:15px;margin-bottom:18px;border:1px solid var(--border-color);background:var(--panel-color)}.notice pre{white-space:pre-wrap;margin:10px 0 0}.notice.success{border-color:var(--success-color)}.notice.error{border-color:var(--danger-color)}.muted-box{opacity:.85}
+    .table-wrap{overflow:auto;border:1px solid var(--border-color);border-radius:14px}.table{width:100%;border-collapse:collapse;background:var(--panel-color)}.table th,.table td{text-align:left;border-bottom:1px solid var(--border-color);padding:12px;vertical-align:top}.table th{font-size:.82rem;color:var(--muted-color);text-transform:uppercase;letter-spacing:.06em}.table tr:last-child td{border-bottom:0}.table tr:hover td{background:rgba(var(--primary-rgb),.06)}.inline-form{display:inline}.empty{padding:30px;text-align:center;border:1px dashed var(--border-color);border-radius:14px;color:var(--muted-color)}.hero{display:grid;grid-template-columns:auto minmax(0,1fr);gap:20px;align-items:center}.hero h2{margin:0}.section-title{margin:26px 0 12px}.login-body{display:flex;align-items:center;justify-content:center;min-height:100vh}.login-container{display:flex;flex-direction:column;justify-content:center;align-items:center;width:100%;padding:24px}.UTMS-logo{font-size:5rem;margin-bottom:1rem;color:var(--text-color);letter-spacing:.03em}.login-box{width:min(430px,92vw);padding:2.15rem;display:flex;border-radius:18px;align-items:center;flex-direction:column;justify-content:center;background:var(--panel-color);border:1px solid var(--border-color);box-shadow:var(--shadow)}.login-box input{margin-top:1rem}.login-box button{width:100%;font-size:1rem}.login-theme{position:fixed;top:1rem;right:1rem;border-radius:999px;padding:.65rem 1rem;border:1px solid var(--border-color);cursor:pointer;color:#fff;background:var(--primary-color)}
+    @media(max-width:900px){.app{grid-template-columns:1fr}.sidebar{position:relative;height:auto}.content{padding:18px}.topbar{align-items:flex-start;flex-direction:column}.topbar-actions{width:100%;justify-content:space-between}.UTMS-logo{font-size:3.6rem}.hero{grid-template-columns:1fr}.brand-mini img{width:52px;height:52px}}
     )CSS";
 }
 
 string page_shell(Instruction_Handler *ih, const string &title, const string &active, const string &content)
 {
+    WEB_USER_VIEW user_view;
+    ih->web_user_view(ih->current_user_id(), &user_view);
+    string photo = public_asset_src(user_view.profile_photo_address);
+
     string html;
     html += "<!doctype html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'>";
     html += "<title>" + html_escape(title) + "</title><style>" + base_styles() + "</style></head><body>";
     html += "<div class='app'>" + sidebar(ih, active) + "<main class='content'>";
-    html += "<div class='topbar'><div><h1>" + html_escape(title) + "</h1><div class='muted'>Signed in as " + html_escape(ih->current_user_name()) + " (#" + html_escape(ih->current_user_id()) + ") · " + html_escape(ih->current_user_type_label()) + "</div></div><button type='button' class='theme-change'>Change Theme</button></div>";
+    html += "<div class='topbar'><div><h1>" + html_escape(title) + "</h1><div class='muted'>University Teaching Management System</div></div>";
+    html += "<div class='topbar-actions'><div class='user-badge'>";
+    if (!photo.empty())
+        html += "<img src='" + attr_escape(photo) + "' alt='Profile photo'>";
+    else
+        html += "<div class='mini-avatar'></div>";
+    html += "<div><strong>" + html_escape(ih->current_user_name()) + "</strong><span>#" + html_escape(ih->current_user_id()) + " · " + html_escape(ih->current_user_type_label()) + "</span></div></div>";
+    html += "<button type='button' class='theme-change'>Change Theme</button></div></div>";
     html += content;
-    html += "</main></div><script>document.querySelector('.theme-change')?.addEventListener('click',()=>document.body.classList.toggle('theme'));</script></body></html>";
+    html += "</main></div><script>const savedTheme=localStorage.getItem('utms-theme');if(savedTheme==='light')document.body.classList.add('theme');document.querySelector('.theme-change')?.addEventListener('click',()=>{document.body.classList.toggle('theme');localStorage.setItem('utms-theme',document.body.classList.contains('theme')?'light':'dark');});</script></body></html>";
     return html;
 }
 
@@ -264,7 +328,7 @@ string login_document(const string &error_message = EMPTYSTRING)
         html += "<div class='notice error' style='width:100%'><strong>" + html_escape(error_message) + "</strong></div>";
     html += "<input name='username' type='text' placeholder='Username' required><input name='password' type='password' placeholder='Password' required><button type='submit'>Login</button>";
     html += "</form></div><button class='login-theme'>Change Theme</button>";
-    html += "<script>document.querySelector('.login-theme').addEventListener('click',()=>document.body.classList.toggle('theme'));</script></body></html>";
+    html += "<script>const savedTheme=localStorage.getItem('utms-theme');if(savedTheme==='light')document.body.classList.add('theme');document.querySelector('.login-theme').addEventListener('click',()=>{document.body.classList.toggle('theme');localStorage.setItem('utms-theme',document.body.classList.contains('theme')?'light':'dark');});</script></body></html>";
     return html;
 }
 
@@ -646,8 +710,10 @@ Response *LoginHandler::callback(Request *req)
 }
 
 LogoutHandler::LogoutHandler(Instruction_Handler *ih) : ih_(ih) {}
-Response *LogoutHandler::callback(Request *)
+Response *LogoutHandler::callback(Request *req)
 {
+    if (!has_current_session(ih_, req))
+        return Response::redirect("/");
     run_checked(ih_, question(Post_Type, Logout_Input, {EMPTYSTRING}));
     Response *res = Response::redirect("/");
     res->setSessionId(EMPTYSTRING);
@@ -657,7 +723,7 @@ Response *LogoutHandler::callback(Request *)
 WebPageHandler::WebPageHandler(Instruction_Handler *ih, WebPage page) : ih_(ih), page_(page) {}
 Response *WebPageHandler::callback(Request *req)
 {
-    if (!ih_->logged_in())
+    if (!has_current_session(ih_, req))
         return Response::redirect("/");
 
     switch (page_)
@@ -792,7 +858,7 @@ Response *WebPageHandler::callback(Request *req)
 WebActionHandler::WebActionHandler(Instruction_Handler *ih, WebAction action) : ih_(ih), action_(action) {}
 Response *WebActionHandler::callback(Request *req)
 {
-    if (!ih_->logged_in())
+    if (!has_current_session(ih_, req))
         return Response::redirect("/");
 
     switch (action_)
@@ -800,26 +866,44 @@ Response *WebActionHandler::callback(Request *req)
     case WebAction::NewPost:
     {
         string image = save_uploaded_png(req, "image", "post");
+        if (image == INVALID_UPLOAD)
+            return render_message_page(ih_, "New Post", "new-post", make_answer(BadRequest), "/post/new", "Create Another Post");
         ANSWER answer = run_checked(ih_, question(Post_Type, Post_Input, {TITLE, req->getBodyParam("title"), MESSAGE, req->getBodyParam("message"), IMAGE, image}));
+        if (answer.output != Ok)
+            remove_managed_upload(image);
         return render_message_page(ih_, "New Post", "new-post", answer, "/post/new", "Create Another Post");
     }
     case WebAction::DeletePost:
     {
+        string image_to_delete;
+        WEB_USER_VIEW view;
+        if (ih_->web_user_view(ih_->current_user_id(), &view))
+            for (const auto &post : view.posts)
+                if (int_to_str(post.id) == req->getBodyParam("id") && !post.is_ta_form)
+                    image_to_delete = post.image_address;
         ANSWER answer = run_checked(ih_, question(Delete_Type, Post_Input, {ID, req->getBodyParam("id")}));
+        if (answer.output == Ok)
+            remove_managed_upload(image_to_delete);
         return render_message_page(ih_, "Delete Post", "personal-page", answer, "/personal_page?id=" + ih_->current_user_id(), "Back to My Page");
     }
     case WebAction::SaveProfilePhoto:
     {
+        WEB_USER_VIEW view;
+        ih_->web_user_view(ih_->current_user_id(), &view);
+        string old_photo = view.profile_photo_address;
         string photo = save_uploaded_png(req, "photo", "profile");
-        ANSWER answer = photo.empty() ? make_answer(BadRequest) : run_checked(ih_, question(Post_Type, Profile_Photo_Input, {PHOTO, photo}));
+        ANSWER answer = (photo.empty() || photo == INVALID_UPLOAD) ? make_answer(BadRequest) : run_checked(ih_, question(Post_Type, Profile_Photo_Input, {PHOTO, photo}));
+        if (answer.output == Ok)
+            remove_managed_upload(old_photo);
+        else
+            remove_managed_upload(photo);
         return render_message_page(ih_, "Profile Photo", "profile-photo", answer, "/profile_photo", "Back to Profile Photo");
     }
     case WebAction::DeleteProfilePhoto:
     {
         WEB_USER_VIEW view;
         ih_->web_user_view(ih_->current_user_id(), &view);
-        if (view.profile_photo_address.rfind("web/uploads/", 0) == 0)
-            std::remove(view.profile_photo_address.c_str());
+        remove_managed_upload(view.profile_photo_address);
         ANSWER answer = run_checked(ih_, question(Post_Type, Profile_Photo_Input, {PHOTO, EMPTYSTRING}));
         return render_message_page(ih_, "Profile Photo", "profile-photo", answer, "/profile_photo", "Back to Profile Photo");
     }
@@ -846,8 +930,12 @@ Response *WebActionHandler::callback(Request *req)
     case WebAction::NewCoursePost:
     {
         string image = save_uploaded_png(req, "image", "course_post");
-        ANSWER answer = run_checked(ih_, question(Post_Type, Course_Post_Input, {ID, req->getBodyParam("id"), TITLE, req->getBodyParam("title"), MESSAGE, req->getBodyParam("message"), IMAGE, image}));
         string back = req->getBodyParam("id").empty() ? "/course_post/new" : "/course_channel?id=" + req->getBodyParam("id");
+        if (image == INVALID_UPLOAD)
+            return render_message_page(ih_, "New Course Post", "new-course-post", make_answer(BadRequest), back, "Back to Channel");
+        ANSWER answer = run_checked(ih_, question(Post_Type, Course_Post_Input, {ID, req->getBodyParam("id"), TITLE, req->getBodyParam("title"), MESSAGE, req->getBodyParam("message"), IMAGE, image}));
+        if (answer.output != Ok)
+            remove_managed_upload(image);
         return render_message_page(ih_, "New Course Post", "new-course-post", answer, back, "Back to Channel");
     }
     case WebAction::NewTaForm:

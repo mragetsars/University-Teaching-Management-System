@@ -12,6 +12,7 @@ const std::unordered_map<std::string, Request::Method> Request::methodMap_ = {
     {"POST", Request::Method::POST},
     {"PUT", Request::Method::PUT},
     {"DEL", Request::Method::DEL},
+    {"DELETE", Request::Method::DEL},
 };
 
 Request::Request(Method method)
@@ -84,7 +85,7 @@ std::string Request::getSessionId() const {
     for (std::string kv : v) {
         trim(kv);
         std::vector<std::string> k = strutils::split(kv, "=");
-        if (k[0] == "sessionId") {
+        if (k.size() >= 2 && k[0] == "sessionId") {
             return k[1];
         }
     }

@@ -1,5 +1,7 @@
 #include "class_class.hpp"
 
+#include <set>
+
 Class::Class(string input_id,
              COURSE *input_course,
              int input_capacity,
@@ -127,9 +129,14 @@ response Class::new_post(User *input_author, string input_title, string input_me
 
 void Class::send_notifications(string input_subject, User *excluded_user)
 {
+    std::set<string> notified_ids;
     auto notify_if_needed = [&](User *receiver)
     {
-        if (receiver != nullptr && (excluded_user == nullptr || receiver->id != excluded_user->id))
+        if (receiver == nullptr)
+            return;
+        if (excluded_user != nullptr && receiver->id == excluded_user->id)
+            return;
+        if (notified_ids.insert(receiver->id).second)
             receiver->receive_notification(id, course->name, input_subject);
     };
     notify_if_needed(teacher);

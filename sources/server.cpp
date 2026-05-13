@@ -11,7 +11,9 @@
 #include <fstream>
 #include <iostream>
 #include <map>
+#include <memory>
 #include <sstream>
+#include <vector>
 
 #include "strutils.hpp"
 #include "utilities.hpp"
@@ -84,19 +86,46 @@ public:
     }
 };
 
+static bool splitKeyValue(const string& input, string& key, string& value, bool valueMayBeEmpty) {
+    size_t pos = input.find('=');
+    if (pos == string::npos) {
+        if (!valueMayBeEmpty) return false;
+        key = input;
+        value.clear();
+        return true;
+    }
+    key = input.substr(0, pos);
+    value = input.substr(pos + 1);
+    return !key.empty();
+}
+
+static bool splitHeaderLine(const string& input, string& key, string& value) {
+    size_t pos = input.find(':');
+    if (pos == string::npos || pos == 0) return false;
+    key = input.substr(0, pos);
+    value = input.substr(pos + 1);
+    while (!value.empty() && value.front() == ' ') value.erase(value.begin());
+    return true;
+}
+
+static bool httpLogEnabled() {
+    static const bool enabled = std::getenv("UTMS_HTTP_LOG") != nullptr;
+    return enabled;
+}
+
 Request* parseRawReq(char* reqData, size_t length) {
-    Request* req = nullptr;
+    std::unique_ptr<Request> req;
     string boundary;
     string lastFieldKey;
     string lastFieldValue;
     string reqDataStr(reqData, reqData + length);
     try {
         size_t endOfHeader = reqDataStr.find("\r\n\r\n");
-        string reqHeader = reqDataStr.substr(0, endOfHeader);
-        string reqBody = reqDataStr.substr(endOfHeader + 4, reqDataStr.size());
         if (endOfHeader == string::npos) {
             throw Server::Exception("End of request header not found.");
         }
+        string reqHeader = reqDataStr.substr(0, endOfHeader);
+        string reqBody = reqDataStr.substr(endOfHeader + 4);
         vector<string> headers = strutils::split(reqHeader, "\r\n");
         if (reqHeader.find('\0') != string::npos) {
             throw Server::Exception("Binary data in header.");
@@ -107,29 +136,27 @@ Request* parseRawReq(char* reqData, size_t length) {
         if (R.size() != 3) {
             throw Server::Exception("Invalid header (request line)");
         }
-        req = new Request(R[0]);
+        req = std::make_unique<Request>(R[0]);
         req->setPath(R[1]);
         size_t pos = req->getPath().find('?');
         if (pos != string::npos && pos != req->getPath().size() - 1) {
             vector<string> Q1 = strutils::split(req->getPath().substr(pos + 1), '&');
-            for (vector<string>::size_type q = 0; q < Q1.size(); q++) {
-                vector<string> Q2 = strutils::split(Q1[q], '=');
-                if (Q2.size() == 2)
-                    req->setQueryParam(Q2[0], Q2[1], false);
-                else
+            for (const string& queryPart : Q1) {
+                string key, value;
+                if (!splitKeyValue(queryPart, key, value, false))
                     throw Server::Exception("Invalid query");
+                req->setQueryParam(key, value, false);
             }
         }
         req->setPath(req->getPath().substr(0, pos));
 
         for (size_t headerIndex = 1; headerIndex < headers.size(); headerIndex++) {
-            string line = headers[headerIndex];
-            vector<string> R = strutils::split(line, ": ");
-            if (R.size() != 2)
+            string key, value;
+            if (!splitHeaderLine(headers[headerIndex], key, value))
                 throw Server::Exception("Invalid header");
-            req->setHeader(R[0], R[1], false);
-            if (strutils::tolower(R[0]) == strutils::tolower("Content-Length"))
-                if (realBodySize != (size_t)atol(R[1].c_str()))
+            req->setHeader(key, value, false);
+            if (strutils::tolower(key) == strutils::tolower("Content-Length"))
+                if (realBodySize != (size_t)atol(value.c_str()))
                     return nullptr;
         }
 
@@ -139,19 +166,21 @@ Request* parseRawReq(char* reqData, size_t length) {
                 vector<string> urlencodedParts = strutils::split(reqBody, "\r\n");
                 for (const string& part : urlencodedParts) {
                     vector<string> body = strutils::split(part, '&');
-                    for (size_t i = 0; i < body.size(); i++) {
-                        vector<string> field = strutils::split(body[i], '=');
-                        if (field.size() == 2)
-                            req->setBodyParam(field[0], field[1], "application/x-www-form-urlencoded", false);
-                        else if (field.size() == 1)
-                            req->setBodyParam(field[0], "", "application/x-www-form-urlencoded", false);
-                        else
+                    for (const string& bodyPart : body) {
+                        string key, value;
+                        if (!splitKeyValue(bodyPart, key, value, true))
                             throw Server::Exception("Invalid body");
+                        req->setBodyParam(key, value, "application/x-www-form-urlencoded", false);
                     }
                 }
             }
             else if (strutils::startsWith(contentType, "multipart/form-data")) {
-                boundary = contentType.substr(contentType.find("boundary=") + 9);
+                size_t boundaryStart = contentType.find("boundary=");
+                if (boundaryStart == string::npos)
+                    throw Server::Exception("Boundary attribute not found.");
+                boundary = contentType.substr(boundaryStart + 9);
+                if (boundary.empty())
+                    throw Server::Exception("Empty multipart boundary.");
                 size_t firstBoundary = reqBody.find("--" + boundary);
                 if (firstBoundary == string::npos) {
                     throw Server::Exception("Boundary data not found.");
@@ -159,40 +188,45 @@ Request* parseRawReq(char* reqData, size_t length) {
                 reqBody.erase(reqBody.begin(), reqBody.begin() + firstBoundary + 2 + boundary.size());
 
                 vector<string> boundaries = strutils::split(reqBody, "--" + boundary);
-                boundaries.pop_back();
+                if (!boundaries.empty())
+                    boundaries.pop_back();
 
                 for (string b : boundaries) {
-                    b.pop_back(); // remove "\r\n" from start and end of each boundary
-                    b.pop_back();
-                    b.erase(b.begin(), b.begin() + 2);
+                    if (b.size() >= 2 && b.substr(0, 2) == "\r\n")
+                        b.erase(0, 2);
+                    if (b.size() >= 2 && b.substr(b.size() - 2) == "\r\n")
+                        b.erase(b.size() - 2);
                     string boundaryContentType = "text/plain";
+                    lastFieldKey.clear();
 
-                    size_t endOfBoundaryHeader = b.find("\r\n\r\n") + 4;
-                    vector<string> abc = strutils::split(b.substr(0, endOfBoundaryHeader - 4), "\r\n");
+                    size_t separator = b.find("\r\n\r\n");
+                    if (separator == string::npos)
+                        throw Server::Exception("Invalid multipart boundary.");
+                    size_t endOfBoundaryHeader = separator + 4;
+                    vector<string> abc = strutils::split(b.substr(0, separator), "\r\n");
                     for (const string& line : abc) {
                         if (line.empty()) {
                             break;
                         }
-                        vector<string> R = strutils::split(line, ": ");
-                        if (R.size() != 2) throw Server::Exception("Invalid header");
-                        if (strutils::tolower(R[0]) == strutils::tolower("Content-Disposition")) {
-                            vector<string> A = strutils::split(R[1], "; ");
-                            for (size_t i = 0; i < A.size(); i++) {
-                                vector<string> attr = strutils::split(A[i], '=');
-                                if (attr.size() == 2) {
-                                    if (strutils::tolower(attr[0]) == strutils::tolower("name")) {
-                                        lastFieldKey = attr[1].substr(1, attr[1].size() - 2);
+                        string key, value;
+                        if (!splitHeaderLine(line, key, value)) throw Server::Exception("Invalid header");
+                        if (strutils::tolower(key) == strutils::tolower("Content-Disposition")) {
+                            vector<string> A = strutils::split(value, "; ");
+                            for (const string& attrText : A) {
+                                string attrKey, attrValue;
+                                if (splitKeyValue(attrText, attrKey, attrValue, false)) {
+                                    if (strutils::tolower(attrKey) == strutils::tolower("name") && attrValue.size() >= 2) {
+                                        lastFieldKey = attrValue.substr(1, attrValue.size() - 2);
                                     }
-                                }
-                                else if (attr.size() != 1) {
-                                    throw Server::Exception("Invalid body attribute");
                                 }
                             }
                         }
-                        else if (strutils::tolower(R[0]) == strutils::tolower("Content-Type")) {
-                            boundaryContentType = strutils::tolower(R[1]);
+                        else if (strutils::tolower(key) == strutils::tolower("Content-Type")) {
+                            boundaryContentType = strutils::tolower(value);
                         }
                     }
+                    if (lastFieldKey.empty())
+                        throw Server::Exception("Multipart field name missing.");
                     lastFieldValue = b.substr(endOfBoundaryHeader);
                     req->setBodyParam(lastFieldKey, lastFieldValue, boundaryContentType, false);
                 }
@@ -208,7 +242,7 @@ Request* parseRawReq(char* reqData, size_t length) {
     catch (const std::exception& e) {
         throw Server::Exception("Error on parsing request: " + std::string(e.what()));
     }
-    return req;
+    return req.release();
 }
 
 Server::Server(int port) : port_(port) {
@@ -279,47 +313,56 @@ void Server::run() {
         newsc = ::accept(sc_, (struct sockaddr*)&cli_addr, &clilen);
         if (!ISVALIDSOCKET(newsc))
             throw Exception("Error on accept: " + string(getSocketError()));
-        Response* res = nullptr;
+        std::unique_ptr<Response> res;
         try {
-            char* data = new char[BUFSIZE + 1];
-            size_t recv_len, recv_total_len = 0;
-            Request* req = nullptr;
+            std::vector<char> data(BUFSIZE + 1, 0);
+            size_t recv_total_len = 0;
+            std::unique_ptr<Request> req;
             while (!req) {
-                recv_len = recv(newsc, data + recv_total_len, BUFSIZE - recv_total_len, 0);
+                if (recv_total_len >= BUFSIZE)
+                    throw Exception("Request is too large.");
+                ssize_t recv_len = recv(newsc, data.data() + recv_total_len, BUFSIZE - recv_total_len, 0);
                 if (recv_len > 0) {
-                    recv_total_len += recv_len;
-                    data[recv_total_len >= 0 ? recv_total_len : 0] = 0;
-                    req = parseRawReq(data, recv_total_len);
+                    recv_total_len += static_cast<size_t>(recv_len);
+                    data[recv_total_len] = 0;
+                    req.reset(parseRawReq(data.data(), recv_total_len));
                 }
-                else
+                else if (recv_len == 0) {
                     break;
+                }
+                else {
+                    throw Exception("Receive error: " + string(getSocketError()));
+                }
             }
-            delete[] data;
             if (!recv_total_len) {
                 CLOSESOCKET(newsc);
                 continue;
             }
-            req->log();
+            if (!req) {
+                throw Exception("Incomplete HTTP request.");
+            }
+            if (httpLogEnabled())
+                req->log();
             size_t i = 0;
             for (; i < routes_.size(); i++) {
                 if (routes_[i]->isMatch(req->getMethod(), req->getPath())) {
-                    res = routes_[i]->handle(req);
+                    res.reset(routes_[i]->handle(req.get()));
                     break;
                 }
             }
             if (i == routes_.size() && notFoundHandler_) {
-                res = notFoundHandler_->callback(req);
+                res.reset(notFoundHandler_->callback(req.get()));
             }
-            delete req;
         }
         catch (const Exception& exc) {
-            delete res;
-            res = ServerErrorHandler::callback(exc.getMessage());
+            res.reset(ServerErrorHandler::callback(exc.getMessage()));
         }
-        res->log();
+        if (!res)
+            res.reset(ServerErrorHandler::callback("No response generated."));
+        if (httpLogEnabled())
+            res->log();
         string res_data = res->getResponse();
         int si = res_data.size();
-        delete res;
         int wr = send(newsc, res_data.c_str(), si, 0);
         if (wr != si)
             throw Exception("Send error: " + string(getSocketError()));

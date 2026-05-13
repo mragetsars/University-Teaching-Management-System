@@ -88,9 +88,8 @@ UTMS/
 │   ├── io_csv.cpp                  # Dataset reader
 │   └── ...
 ├── utils/                          # Original APHTTP utility mirror
-├── web/                            # Static web assets and HTML pages
-│   ├── UTMS.png
-│   ├── login.html
+├── web/                            # Static web assets and runtime uploads
+│   ├── UTMS.png                     # Transparent UTMS logo asset
 │   ├── login.html                   # Login page style reference
 │   └── uploads/                     # Runtime PNG uploads
 ├── Makefile                        # Build configuration
@@ -144,7 +143,17 @@ cat tests/smoke_input.txt | ./out.utms data_majors.csv data_students.csv data_co
 ./scripts/run_web_smoke_tests.sh
 ```
 
-**5. Run in web mode**
+The web smoke test covers login, role switching, course offering creation, session protection, PNG upload, enrollment, and course viewing.
+
+**5. Optional sanitizer build**
+
+```bash
+make sanitize
+```
+
+This target rebuilds with AddressSanitizer/UndefinedBehaviorSanitizer flags for local debugging.
+
+**6. Run in web mode**
 
 ```bash
 ./out.utms data_majors.csv data_students.csv data_courses.csv data_professors.csv --web
@@ -181,12 +190,10 @@ The CLI remains available for automated regression testing and compatibility wit
 - Personal posts and course posts are displayed newest-first where the specification requires timeline ordering.
 - Course offerings are stored in a `deque` so object addresses remain stable when new offerings are added.
 - Generated build artifacts are ignored through `.gitignore`; rebuild with `make` whenever needed.
-- The default university account is:
-
-```text
-id: 0
-password: UT_account
-```
+- The login page intentionally does not expose privileged account credentials.
+- Web requests are checked against the active session cookie before serving dashboard/action pages.
+- Uploaded PNG files are validated by signature, stored under `web/uploads/`, and cleaned up when replaced or deleted through the UI.
+- HTTP request parsing uses RAII-managed request/response objects in the server loop to avoid leaks on malformed or interrupted requests.
 
 ## Author
 
