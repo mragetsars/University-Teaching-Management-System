@@ -113,6 +113,31 @@ void Request::setBodyParam(const std::string& key, const std::string& value, con
     bodyTypes_[key] = contentType;
 }
 
+static std::string methodToString(Request::Method method) {
+    switch (method) {
+    case Request::Method::GET:
+        return "GET";
+    case Request::Method::POST:
+        return "POST";
+    case Request::Method::PUT:
+        return "PUT";
+    case Request::Method::DEL:
+        return "DELETE";
+    }
+    return "UNKNOWN";
+}
+
+static std::string redactedValue(const std::string& key, const std::string& value) {
+    std::string normalizedKey = strutils::tolower(key);
+    if (normalizedKey.find("password") != std::string::npos || normalizedKey == "cookie") {
+        return "<redacted>";
+    }
+    if (value.size() > 240) {
+        return value.substr(0, 240) + "... <truncated>";
+    }
+    return value;
+}
+
 void Request::log() const {
     const std::string NC = "\033[0;39m";
     const std::string K = "\033[1m";
@@ -120,25 +145,25 @@ void Request::log() const {
 
     std::string log;
     log += H + "------- Request --------" + NC + "\n";
-    log += K + "Method: " + NC + (method_ == Method::POST ? "POST" : "GET") + "\n";
+    log += K + "Method: " + NC + methodToString(method_) + "\n";
     log += K + "Path:   " + NC + path_ + "\n";
     log += K + "SessionId: " + NC + this->getSessionId() + "\n";
 
     log += K + "Headers:" + NC + "\n";
     for (auto itr = headers_.begin(); itr != headers_.end(); itr++) {
-        log += "  " + utils::urlDecode(itr->first) + ": " + utils::urlDecode(itr->second) + "\n";
+        log += "  " + utils::urlDecode(itr->first) + ": " + redactedValue(utils::urlDecode(itr->first), utils::urlDecode(itr->second)) + "\n";
     }
 
     log += K + "Query:" + NC + "\n";
     for (auto itr = query_.begin(); itr != query_.end(); itr++) {
-        log += "  " + utils::urlDecode(itr->first) + ": " + utils::urlDecode(itr->second) + "\n";
+        log += "  " + utils::urlDecode(itr->first) + ": " + redactedValue(utils::urlDecode(itr->first), utils::urlDecode(itr->second)) + "\n";
     }
 
     log += K + "Body:" + NC + "\n";
     for (auto itr = body_.begin(); itr != body_.end(); itr++) {
         std::string type = bodyTypes_.find(itr->first)->second;
         if (type == "application/x-www-form-urlencoded" || type == "text/plain") {
-            log += "  " + utils::urlDecode(itr->first) + ": " + utils::urlDecode(itr->second) + "\n";
+            log += "  " + utils::urlDecode(itr->first) + ": " + redactedValue(utils::urlDecode(itr->first), utils::urlDecode(itr->second)) + "\n";
         }
         else {
             log += "  " + utils::urlDecode(itr->first) + ": <BINARY DATA>\n";

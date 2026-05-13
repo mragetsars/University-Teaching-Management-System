@@ -1,6 +1,6 @@
 # University Teaching Management System (UTMS)
 
-> **Advanced Programming (AP) – University of Tehran – Department of Computer Engineering**
+> **Advanced Programming (AP) – University of Tehran – Department of Electrical & Computer Engineering**
 
 ![Language](https://img.shields.io/badge/Language-C%2B%2B20-orange)
 ![Tool](https://img.shields.io/badge/Tool-g%2B%2B-blue)
@@ -10,7 +10,7 @@
 
 ## Overview
 
-This repository contains the source code for **UTMS**, a university teaching management and social-media platform implemented in C++20. It was developed as the **Sixth Computer Assignment** for the **Advanced Programming** course at the University of Tehran.
+This repository contains the source code for **UTMS**, a university teaching management and social-media platform implemented in **C++20**. It was developed as the *Sixth Computer Assignment* for the *Advanced Programming* course at the **University of Tehran**.
 
 The system combines a simplified educational management service with a social network. Students, professors, and the default university account can authenticate, publish posts, connect with each other, receive notifications, manage course offerings, enroll in courses, use teaching-assistant workflows, and interact with course announcement channels. The project also includes a lightweight HTTP web interface powered by the provided APHTTP-style server library.
 
@@ -59,6 +59,13 @@ The third phase adds a lightweight HTTP interface on top of the same UTMS engine
 
 The web interface delegates to the same `Instruction_Handler` business rules used by the terminal version, keeping the core behavior centralized while providing a full graphical workflow.
 
+## Screenshots
+
+| Login | Dashboard | Post Details |
+| ----- | --------- | ------------ |
+| ![Login - Dark Theme](./screenshots/login-dark.png) | ![Dashboard - Dark Theme](./screenshots/dashboard-dark.png) | ![Post Details - Dark Theme](./screenshots/post-details-dark.png) |
+| ![Login - Light Theme](./screenshots/login-light.png) | ![Dashboard - Light Theme](./screenshots/dashboard-light.png) | ![Post Details - Light Theme](./screenshots/post-details-light.png) |
+
 ## Repository Structure
 
 ```text
@@ -92,6 +99,13 @@ UTMS/
 │   ├── UTMS.png                     # Transparent UTMS logo asset
 │   ├── login.html                   # Login page style reference
 │   └── uploads/                     # Runtime PNG uploads
+├── screenshots/                     # README preview screenshots
+│   ├── login-dark.png
+│   ├── login-light.png
+│   ├── dashboard-dark.png
+│   ├── dashboard-light.png
+│   ├── post-details-dark.png
+│   └── post-details-light.png
 ├── Makefile                        # Build configuration
 ├── LICENSE                         # MIT License
 └── README.md                       # Project documentation
@@ -165,6 +179,12 @@ Then open:
 http://localhost:5000
 ```
 
+HTTP request/response logging is enabled by default in web mode so development actions are visible in the terminal. To disable it for a quieter run:
+
+```bash
+UTMS_HTTP_LOG=0 ./out.utms data_majors.csv data_students.csv data_courses.csv data_professors.csv --web
+```
+
 ## Web Workflow Coverage
 
 The web UI contains dedicated pages for the operations required in the third phase:
@@ -194,6 +214,7 @@ The CLI remains available for automated regression testing and compatibility wit
 - Web requests are checked against the active session cookie before serving dashboard/action pages.
 - Uploaded PNG files are validated by signature, stored under `web/uploads/`, and cleaned up when replaced or deleted through the UI.
 - HTTP request parsing uses RAII-managed request/response objects in the server loop to avoid leaks on malformed or interrupted requests.
+- The web server logs requests/responses by default, redacts passwords/cookies in logs, ignores `SIGPIPE`, sends responses in a loop to avoid partial-send bugs, and applies socket I/O timeouts so an idle or partial browser connection cannot block the single-threaded server indefinitely.
 
 ## Author
 

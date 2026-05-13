@@ -6,6 +6,7 @@
 #include <string.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <signal.h>
 
 #include <algorithm>
 #include <fstream>
@@ -39,6 +40,16 @@
 #define ISVALIDSOCKET(s) ((s) >= 0)
 #define CLOSESOCKET(s)   close(s)
 #define GETSOCKETERRNO() (errno)
+#endif
+
+#ifndef _WIN32
+#ifdef MSG_NOSIGNAL
+#define UTMS_SEND_FLAGS MSG_NOSIGNAL
+#else
+#define UTMS_SEND_FLAGS 0
+#endif
+#else
+#define UTMS_SEND_FLAGS 0
 #endif
 
 static const char* getSocketError() {
@@ -109,8 +120,38 @@ static bool splitHeaderLine(const string& input, string& key, string& value) {
 }
 
 static bool httpLogEnabled() {
-    static const bool enabled = std::getenv("UTMS_HTTP_LOG") != nullptr;
-    return enabled;
+    const char* value = std::getenv("UTMS_HTTP_LOG");
+    if (value == nullptr) {
+        return true;
+    }
+    std::string normalized = strutils::tolower(value);
+    return !(normalized == "0" || normalized == "false" || normalized == "off" || normalized == "no");
+}
+
+static void setSocketIoTimeout(SOCKET socketFd, int seconds) {
+#ifdef _WIN32
+    DWORD timeoutMs = static_cast<DWORD>(seconds * 1000);
+    setsockopt(socketFd, SOL_SOCKET, SO_RCVTIMEO, reinterpret_cast<const char*>(&timeoutMs), sizeof(timeoutMs));
+    setsockopt(socketFd, SOL_SOCKET, SO_SNDTIMEO, reinterpret_cast<const char*>(&timeoutMs), sizeof(timeoutMs));
+#else
+    struct timeval timeout;
+    timeout.tv_sec = seconds;
+    timeout.tv_usec = 0;
+    setsockopt(socketFd, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout));
+    setsockopt(socketFd, SOL_SOCKET, SO_SNDTIMEO, &timeout, sizeof(timeout));
+#endif
+}
+
+static void sendAll(SOCKET socketFd, const std::string& data) {
+    size_t sent = 0;
+    while (sent < data.size()) {
+        int chunk = static_cast<int>(std::min<size_t>(data.size() - sent, INT_MAX));
+        int written = send(socketFd, data.data() + sent, chunk, UTMS_SEND_FLAGS);
+        if (written <= 0) {
+            throw Server::Exception("Send error: " + string(getSocketError()));
+        }
+        sent += static_cast<size_t>(written);
+    }
 }
 
 Request* parseRawReq(char* reqData, size_t length) {
@@ -254,6 +295,9 @@ Server::Server(int port) : port_(port) {
                         string(getSocketError()));
     }
 #endif
+#ifndef _WIN32
+    signal(SIGPIPE, SIG_IGN);
+#endif
 
     notFoundHandler_ = new NotFoundHandler();
 
@@ -313,6 +357,7 @@ void Server::run() {
         newsc = ::accept(sc_, (struct sockaddr*)&cli_addr, &clilen);
         if (!ISVALIDSOCKET(newsc))
             throw Exception("Error on accept: " + string(getSocketError()));
+        setSocketIoTimeout(newsc, 5);
         std::unique_ptr<Response> res;
         try {
             std::vector<char> data(BUFSIZE + 1, 0);
@@ -331,6 +376,15 @@ void Server::run() {
                     break;
                 }
                 else {
+#ifdef _WIN32
+                    if (GETSOCKETERRNO() == WSAETIMEDOUT && recv_total_len == 0) {
+                        break;
+                    }
+#else
+                    if ((GETSOCKETERRNO() == EAGAIN || GETSOCKETERRNO() == EWOULDBLOCK) && recv_total_len == 0) {
+                        break;
+                    }
+#endif
                     throw Exception("Receive error: " + string(getSocketError()));
                 }
             }
@@ -362,10 +416,7 @@ void Server::run() {
         if (httpLogEnabled())
             res->log();
         string res_data = res->getResponse();
-        int si = res_data.size();
-        int wr = send(newsc, res_data.c_str(), si, 0);
-        if (wr != si)
-            throw Exception("Send error: " + string(getSocketError()));
+        sendAll(newsc, res_data);
         CLOSESOCKET(newsc);
     }
 }

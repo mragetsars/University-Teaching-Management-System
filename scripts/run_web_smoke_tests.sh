@@ -52,4 +52,8 @@ grep -q 'OK' "$BODY_FILE"
 curl -fsS -b "$COOKIE_JAR" http://127.0.0.1:5000/my_courses >"$BODY_FILE"
 grep -q 'Advanced Programming' "$BODY_FILE"
 
+grep -q -- '------- Request --------' "$LOG_FILE"
+grep -q -- '------- Response -------' "$LOG_FILE"
+grep -q -- 'password: <redacted>' "$LOG_FILE"
+
 printf 'UTMS web smoke tests passed.\n'
