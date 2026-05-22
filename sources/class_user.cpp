@@ -141,3 +141,31 @@ string User::profile_photo() const
 {
     return profile_photo_address;
 }
+
+void User::restore_post(const POST &post)
+{
+    for (auto &existing : posts)
+        if (existing.id == post.id)
+            return;
+    posts.push_back(post);
+    std::sort(posts.begin(), posts.end(), [](const POST &a, const POST &b) { return a.id < b.id; });
+}
+
+vector<string> User::connection_ids() const
+{
+    vector<string> ids;
+    for (auto connection : connections)
+        if (connection != nullptr)
+            ids.push_back(connection->id);
+    return ids;
+}
+
+vector<NOTIFICATION> User::pending_notifications() const
+{
+    return notifications;
+}
+
+void User::restore_notification(const NOTIFICATION &notification)
+{
+    notifications.push_back(notification);
+}

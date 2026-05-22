@@ -19,4 +19,6 @@ public:
     response delete_class(string input_id);
     response show_class(vector<string> *output);
     bool has_class(string input_id) const;
+    void restore_class(Class *input_class);
+    vector<string> class_ids() const;
 };

@@ -163,7 +163,7 @@ Request* parseRawReq(char* reqData, size_t length) {
     try {
         size_t endOfHeader = reqDataStr.find("\r\n\r\n");
         if (endOfHeader == string::npos) {
-            throw Server::Exception("End of request header not found.");
+            return nullptr;
         }
         string reqHeader = reqDataStr.substr(0, endOfHeader);
         string reqBody = reqDataStr.substr(endOfHeader + 4);
@@ -177,6 +177,10 @@ Request* parseRawReq(char* reqData, size_t length) {
         if (R.size() != 3) {
             throw Server::Exception("Invalid header (request line)");
         }
+        if (!(R[0] == "GET" || R[0] == "POST" || R[0] == "PUT" || R[0] == "DELETE" || R[0] == "DEL"))
+            throw Server::Exception("Unsupported HTTP method: " + R[0]);
+        if (R[1].empty() || R[1][0] != '/' || R[1].find("..") != string::npos)
+            throw Server::Exception("Invalid request path.");
         req = std::make_unique<Request>(R[0]);
         req->setPath(R[1]);
         size_t pos = req->getPath().find('?');
@@ -197,8 +201,21 @@ Request* parseRawReq(char* reqData, size_t length) {
                 throw Server::Exception("Invalid header");
             req->setHeader(key, value, false);
             if (strutils::tolower(key) == strutils::tolower("Content-Length"))
-                if (realBodySize != (size_t)atol(value.c_str()))
+            {
+                size_t declaredBodySize = 0;
+                try
+                {
+                    declaredBodySize = static_cast<size_t>(stoull(value));
+                }
+                catch (...)
+                {
+                    throw Server::Exception("Invalid Content-Length header.");
+                }
+                if (declaredBodySize > BUFSIZE)
+                    throw Server::Exception("Request body is too large.");
+                if (realBodySize != declaredBodySize)
                     return nullptr;
+            }
         }
 
         string contentType = req->getHeader("Content-Type");
@@ -416,7 +433,12 @@ void Server::run() {
         if (httpLogEnabled())
             res->log();
         string res_data = res->getResponse();
-        sendAll(newsc, res_data);
+        try {
+            sendAll(newsc, res_data);
+        } catch (const Exception& exc) {
+            if (httpLogEnabled())
+                std::clog << "HTTP send failed: " << exc.getMessage() << std::endl;
+        }
         CLOSESOCKET(newsc);
     }
 }

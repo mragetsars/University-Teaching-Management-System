@@ -70,6 +70,11 @@ struct WEB_TA_FORM_VIEW
     vector<WEB_TA_REQUEST_VIEW> requests;
 };
 
+struct UTMS_STATE_SNAPSHOT
+{
+    vector<string> lines;
+};
+
 class Instruction_Handler
 {
 private:
@@ -80,12 +85,15 @@ private:
     System_Manager system_manager;
     vector<Student> students;
     vector<Professor> professors;
+    string state_file_path;
+    bool loading_state = false;
 
     bool find_user_by_id(User **user_ptr, string id);
     bool find_class_by_id(Class **class_ptr, string id);
     bool find_course_by_id(COURSE **course_ptr, string id);
     bool check_class_detail(User *input_teacher, string input_class_time);
     void broadcast_notification(User *sender, string subject);
+    void persist_if_enabled();
 
     ANSWER POST_login(vector<string> input);
     ANSWER POST_logout();
@@ -130,4 +138,9 @@ public:
     vector<WEB_TA_FORM_VIEW> web_all_ta_forms();
     vector<WEB_TA_FORM_VIEW> web_my_ta_forms();
     ANSWER web_close_ta_form(int form_id, const map<string, string> &decisions);
+
+    void enable_state_persistence(const string &path, bool load_existing = true);
+    bool save_state(const string &path) const;
+    bool load_state(const string &path);
+    string current_state_file() const;
 };

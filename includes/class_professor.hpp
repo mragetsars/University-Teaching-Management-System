@@ -33,4 +33,6 @@ public:
     response new_request(Student *input_user, int input_id);
     void offer_class(Class *input_class);
     bool owns_class(Class *input_class) const;
+    void restore_form(const FORM &form);
+    vector<string> class_ids() const;
 };

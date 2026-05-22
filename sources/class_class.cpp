@@ -186,3 +186,42 @@ vector<CHANNEL_POST> Class::get_channel_posts() const
 {
     return channel_posts;
 }
+
+void Class::restore_student(User *student)
+{
+    if (student != nullptr && !has_student(student->id))
+        students.push_back(student);
+}
+
+void Class::restore_teacher_assistant(User *assistant)
+{
+    if (assistant != nullptr && !has_teacher_assistant(assistant->id))
+        teacher_assistants.push_back(assistant);
+}
+
+void Class::restore_channel_post(const CHANNEL_POST &post)
+{
+    for (const auto &existing : channel_posts)
+        if (existing.id == post.id)
+            return;
+    channel_posts.push_back(post);
+    std::sort(channel_posts.begin(), channel_posts.end(), [](const CHANNEL_POST &a, const CHANNEL_POST &b) { return a.id < b.id; });
+}
+
+vector<string> Class::student_ids() const
+{
+    vector<string> ids;
+    for (auto student : students)
+        if (student != nullptr)
+            ids.push_back(student->id);
+    return ids;
+}
+
+vector<string> Class::teacher_assistant_ids() const
+{
+    vector<string> ids;
+    for (auto assistant : teacher_assistants)
+        if (assistant != nullptr)
+            ids.push_back(assistant->id);
+    return ids;
+}

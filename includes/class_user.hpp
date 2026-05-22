@@ -46,4 +46,8 @@ public:
     void receive_notification(string input_id, string input_name, string input_subject);
     response set_profile_photo(string input_photo_address);
     string profile_photo() const;
+    void restore_post(const POST &post);
+    vector<string> connection_ids() const;
+    vector<NOTIFICATION> pending_notifications() const;
+    void restore_notification(const NOTIFICATION &notification);
 };

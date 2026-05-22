@@ -1,4 +1,7 @@
 #include "handler_instruction.hpp"
+#include "utilities.hpp"
+
+#include <filesystem>
 
 Instruction_Handler::Instruction_Handler(DATA input_data)
 {
@@ -566,6 +569,15 @@ ANSWER Instruction_Handler::POST_ta_request(vector<string> input)
 
 ANSWER Instruction_Handler::run(QUESTION input)
 {
+    auto finish = [&](ANSWER answer) {
+        bool mutating_command = input.type == Put_Type || input.type == Delete_Type ||
+                                (input.type == Post_Type && input.input != Login_Input) ||
+                                (input.type == Get_Type && input.input == Notification_Input);
+        if (mutating_command && (answer.output == Ok || answer.output == JustInformation || answer.output == Empty))
+            persist_if_enabled();
+        return answer;
+    };
+
     ANSWER output;
     if (!input.invalid)
     {
@@ -578,50 +590,50 @@ ANSWER Instruction_Handler::run(QUESTION input)
         switch (input.input)
         {
         case Courses_Input:
-            return GET_courses(input.info);
+            return finish(GET_courses(input.info));
         case Personal_Page_Input:
-            return GET_personal_page(input.info);
+            return finish(GET_personal_page(input.info));
         case Post_Input:
-            return GET_post(input.info);
+            return finish(GET_post(input.info));
         case Notification_Input:
-            return GET_notification();
+            return finish(GET_notification());
         case My_Courses_Input:
-            return GET_my_courses();
+            return finish(GET_my_courses());
         case Course_Channel_Input:
-            return GET_course_channel(input.info);
+            return finish(GET_course_channel(input.info));
         case Course_Post_Input:
-            return GET_course_post(input.info);
+            return finish(GET_course_post(input.info));
         default:
             break;
         }
         break;
     case Put_Type:
         if (input.input == My_Courses_Input)
-            return PUT_my_courses(input.info);
+            return finish(PUT_my_courses(input.info));
         break;
     case Post_Type:
         switch (input.input)
         {
         case Login_Input:
-            return POST_login(input.info);
+            return finish(POST_login(input.info));
         case Logout_Input:
-            return POST_logout();
+            return finish(POST_logout());
         case Post_Input:
-            return POST_post(input.info);
+            return finish(POST_post(input.info));
         case Connect_Input:
-            return POST_connect(input.info);
+            return finish(POST_connect(input.info));
         case Course_Offer_Input:
-            return POST_course_offer(input.info);
+            return finish(POST_course_offer(input.info));
         case Profile_Photo_Input:
-            return POST_profile_photo(input.info);
+            return finish(POST_profile_photo(input.info));
         case Course_Post_Input:
-            return POST_course_post(input.info);
+            return finish(POST_course_post(input.info));
         case Ta_Form_Input:
-            return POST_ta_form(input.info);
+            return finish(POST_ta_form(input.info));
         case Close_Ta_Form_Input:
-            return POST_close_ta_form(input.info);
+            return finish(POST_close_ta_form(input.info));
         case Ta_Request_Input:
-            return POST_ta_request(input.info);
+            return finish(POST_ta_request(input.info));
         default:
             break;
         }
@@ -630,9 +642,9 @@ ANSWER Instruction_Handler::run(QUESTION input)
         switch (input.input)
         {
         case Post_Input:
-            return DELETE_post(input.info);
+            return finish(DELETE_post(input.info));
         case My_Courses_Input:
-            return DELETE_my_courses(input.info);
+            return finish(DELETE_my_courses(input.info));
         default:
             break;
         }
@@ -835,5 +847,361 @@ ANSWER Instruction_Handler::web_close_ta_form(int form_id, const map<string, str
         return output;
     }
     output.output = dynamic_cast<Professor *>(user)->close_form_with_decisions(form_id, decisions, &output.info);
+    if (output.output == Ok || output.output == JustInformation)
+        persist_if_enabled();
     return output;
+}
+
+namespace
+{
+vector<string> split_state_line(const string &line)
+{
+    vector<string> parts;
+    string current;
+    for (char ch : line)
+    {
+        if (ch == '\t')
+        {
+            parts.push_back(current);
+            current.clear();
+        }
+        else
+        {
+            current.push_back(ch);
+        }
+    }
+    parts.push_back(current);
+    return parts;
+}
+
+string enc_state(const string &value)
+{
+    return utils::urlEncode(value);
+}
+
+string dec_state(const string &value)
+{
+    return utils::urlDecode(value);
+}
+
+string join_state_ids(const vector<string> &ids)
+{
+    string out;
+    for (size_t i = 0; i < ids.size(); ++i)
+    {
+        if (i)
+            out += ",";
+        out += enc_state(ids[i]);
+    }
+    return out;
+}
+
+vector<string> split_state_ids(const string &value)
+{
+    vector<string> result;
+    if (value.empty())
+        return result;
+    string current;
+    for (char ch : value)
+    {
+        if (ch == ',')
+        {
+            result.push_back(dec_state(current));
+            current.clear();
+        }
+        else
+            current.push_back(ch);
+    }
+    result.push_back(dec_state(current));
+    return result;
+}
+}
+
+void Instruction_Handler::persist_if_enabled()
+{
+    if (!loading_state && !state_file_path.empty())
+        save_state(state_file_path);
+}
+
+void Instruction_Handler::enable_state_persistence(const string &path, bool load_existing)
+{
+    state_file_path = path;
+    if (load_existing && !path.empty())
+        load_state(path);
+}
+
+string Instruction_Handler::current_state_file() const
+{
+    return state_file_path;
+}
+
+bool Instruction_Handler::save_state(const string &path) const
+{
+    if (path.empty())
+        return false;
+    try
+    {
+        std::filesystem::path state_path(path);
+        if (!state_path.parent_path().empty())
+            std::filesystem::create_directories(state_path.parent_path());
+        ofstream out(path);
+        if (!out)
+            return false;
+        out << "# UTMS_STATE_V1\n";
+
+        auto write_user_state = [&](const User &input_user)
+        {
+            out << "PROFILE\t" << enc_state(input_user.id) << "\t" << enc_state(input_user.profile_photo_address) << "\n";
+            for (const auto &post : input_user.posts)
+            {
+                out << "POST\t" << enc_state(input_user.id) << "\t" << post.id << "\t" << enc_state(post.title)
+                    << "\t" << enc_state(post.message) << "\t" << enc_state(post.image_address) << "\t" << (post.is_ta_form ? "1" : "0")
+                    << "\t" << enc_state(post.ta_course_id) << "\t" << enc_state(post.ta_course_name) << "\n";
+            }
+            for (const auto &target_id : input_user.connection_ids())
+                if (input_user.id < target_id)
+                    out << "CONNECTION\t" << enc_state(input_user.id) << "\t" << enc_state(target_id) << "\n";
+            for (const auto &notification : input_user.pending_notifications())
+                out << "NOTIFICATION\t" << enc_state(input_user.id) << "\t" << enc_state(notification.id) << "\t" << enc_state(notification.name) << "\t" << enc_state(notification.subject) << "\n";
+        };
+
+        write_user_state(system_manager);
+        for (const auto &student : students)
+            write_user_state(student);
+        for (const auto &professor : professors)
+            write_user_state(professor);
+
+        for (const auto &input_class : classes)
+        {
+            out << "CLASS\t" << enc_state(input_class.id) << "\t" << enc_state(input_class.course == nullptr ? EMPTYSTRING : input_class.course->id)
+                << "\t" << input_class.capacity << "\t" << enc_state(input_class.teacher == nullptr ? EMPTYSTRING : input_class.teacher->id)
+                << "\t" << enc_state(time_to_string(input_class.class_time)) << "\t" << enc_state(date_to_string(input_class.exam_date))
+                << "\t" << input_class.class_number << "\n";
+            for (const auto &student_id : input_class.student_ids())
+                out << "ENROLL\t" << enc_state(input_class.id) << "\t" << enc_state(student_id) << "\n";
+            for (const auto &assistant_id : input_class.teacher_assistant_ids())
+                out << "TA\t" << enc_state(input_class.id) << "\t" << enc_state(assistant_id) << "\n";
+            for (const auto &post : input_class.get_channel_posts())
+            {
+                out << "CHANNEL_POST\t" << enc_state(input_class.id) << "\t" << post.id << "\t" << enc_state(post.author_id) << "\t"
+                    << enc_state(post.author_name) << "\t" << enc_state(post.title) << "\t" << enc_state(post.message) << "\t" << enc_state(post.image_address) << "\n";
+            }
+        }
+
+        for (const auto &professor : professors)
+            for (const auto &form : professor.forms)
+                out << "FORM\t" << enc_state(professor.id) << "\t" << form.id << "\t" << enc_state(form.form_class == nullptr ? EMPTYSTRING : form.form_class->id)
+                    << "\t" << enc_state(form.message) << "\t" << join_state_ids([&]() {
+                        vector<string> ids;
+                        for (auto request : form.requests)
+                            if (request != nullptr)
+                                ids.push_back(request->id);
+                        return ids;
+                    }()) << "\n";
+        return true;
+    }
+    catch (...)
+    {
+        return false;
+    }
+}
+
+bool Instruction_Handler::load_state(const string &path)
+{
+    ifstream in(path);
+    if (!in)
+        return false;
+
+    loading_state = true;
+    string previous_user_id = current_user_id();
+    bool was_login = is_login;
+    is_login = false;
+    user = nullptr;
+
+    struct PendingClass
+    {
+        string id, course_id, professor_id, time, exam_date, class_number;
+        int capacity = 0;
+    };
+    struct PendingForm
+    {
+        string professor_id, class_id, message;
+        int id = 0;
+        vector<string> request_ids;
+    };
+    vector<pair<string, string>> pending_enrollments;
+    vector<pair<string, string>> pending_tas;
+    vector<pair<string, string>> pending_connections;
+    vector<PendingClass> pending_classes;
+    vector<PendingForm> pending_forms;
+    struct PendingChannelPost
+    {
+        string class_id;
+        CHANNEL_POST post;
+    };
+    vector<PendingChannelPost> pending_channel_posts;
+
+    string line;
+    while (getline(in, line))
+    {
+        if (line.empty() || line[0] == '#')
+            continue;
+        vector<string> p = split_state_line(line);
+        try
+        {
+            if (p[0] == "PROFILE" && p.size() >= 3)
+            {
+                User *target = nullptr;
+                if (find_user_by_id(&target, dec_state(p[1])))
+                    target->set_profile_photo(dec_state(p[2]));
+            }
+            else if (p[0] == "POST" && p.size() >= 9)
+            {
+                User *target = nullptr;
+                if (find_user_by_id(&target, dec_state(p[1])))
+                {
+                    POST post;
+                    post.id = str_to_int(p[2]);
+                    post.title = dec_state(p[3]);
+                    post.message = dec_state(p[4]);
+                    post.image_address = dec_state(p[5]);
+                    post.is_ta_form = p[6] == "1";
+                    post.ta_course_id = dec_state(p[7]);
+                    post.ta_course_name = dec_state(p[8]);
+                    target->restore_post(post);
+                }
+            }
+            else if (p[0] == "NOTIFICATION" && p.size() >= 5)
+            {
+                User *target = nullptr;
+                if (find_user_by_id(&target, dec_state(p[1])))
+                    target->restore_notification({dec_state(p[2]), dec_state(p[3]), dec_state(p[4])});
+            }
+            else if (p[0] == "CONNECTION" && p.size() >= 3)
+            {
+                pending_connections.push_back({dec_state(p[1]), dec_state(p[2])});
+            }
+            else if (p[0] == "CLASS" && p.size() >= 8)
+            {
+                pending_classes.push_back({dec_state(p[1]), dec_state(p[2]), dec_state(p[4]), dec_state(p[5]), dec_state(p[6]), dec_state(p[7]), str_to_int(p[3])});
+            }
+            else if (p[0] == "ENROLL" && p.size() >= 3)
+            {
+                pending_enrollments.push_back({dec_state(p[1]), dec_state(p[2])});
+            }
+            else if (p[0] == "TA" && p.size() >= 3)
+            {
+                pending_tas.push_back({dec_state(p[1]), dec_state(p[2])});
+            }
+            else if (p[0] == "CHANNEL_POST" && p.size() >= 8)
+            {
+                CHANNEL_POST post;
+                post.id = str_to_int(p[2]);
+                post.author_id = dec_state(p[3]);
+                post.author_name = dec_state(p[4]);
+                post.title = dec_state(p[5]);
+                post.message = dec_state(p[6]);
+                post.image_address = dec_state(p[7]);
+                pending_channel_posts.push_back({dec_state(p[1]), post});
+            }
+            else if (p[0] == "FORM" && p.size() >= 6)
+            {
+                PendingForm form;
+                form.professor_id = dec_state(p[1]);
+                form.id = str_to_int(p[2]);
+                form.class_id = dec_state(p[3]);
+                form.message = dec_state(p[4]);
+                form.request_ids = split_state_ids(p[5]);
+                pending_forms.push_back(form);
+            }
+        }
+        catch (...)
+        {
+            // Corrupted state lines are ignored so a bad optional state file cannot prevent startup.
+        }
+    }
+
+    for (const auto &pending : pending_classes)
+    {
+        Class *existing = nullptr;
+        if (find_class_by_id(&existing, pending.id))
+            continue;
+        COURSE *course = nullptr;
+        User *professor = nullptr;
+        if (find_course_by_id(&course, pending.course_id) && find_user_by_id(&professor, pending.professor_id))
+        {
+            classes.emplace_back(pending.id, course, pending.capacity, professor, pending.time, pending.exam_date, pending.class_number);
+            if (auto prof = dynamic_cast<Professor *>(professor))
+                prof->offer_class(&classes.back());
+        }
+    }
+
+    for (const auto &enrollment : pending_enrollments)
+    {
+        Class *class_ptr = nullptr;
+        User *student_user = nullptr;
+        if (find_class_by_id(&class_ptr, enrollment.first) && find_user_by_id(&student_user, enrollment.second))
+            if (auto student = dynamic_cast<Student *>(student_user))
+            {
+                class_ptr->restore_student(student_user);
+                student->restore_class(class_ptr);
+            }
+    }
+
+    for (const auto &assistant : pending_tas)
+    {
+        Class *class_ptr = nullptr;
+        User *student_user = nullptr;
+        if (find_class_by_id(&class_ptr, assistant.first) && find_user_by_id(&student_user, assistant.second))
+            class_ptr->restore_teacher_assistant(student_user);
+    }
+
+    for (const auto &pending_post : pending_channel_posts)
+    {
+        Class *class_ptr = nullptr;
+        if (find_class_by_id(&class_ptr, pending_post.class_id))
+            class_ptr->restore_channel_post(pending_post.post);
+    }
+
+    for (const auto &connection : pending_connections)
+    {
+        User *first = nullptr;
+        User *second = nullptr;
+        if (find_user_by_id(&first, connection.first) && find_user_by_id(&second, connection.second))
+            first->new_connection(second);
+    }
+
+    for (const auto &pending : pending_forms)
+    {
+        User *professor_user = nullptr;
+        Class *class_ptr = nullptr;
+        if (find_user_by_id(&professor_user, pending.professor_id) && find_class_by_id(&class_ptr, pending.class_id))
+            if (auto professor = dynamic_cast<Professor *>(professor_user))
+            {
+                FORM form;
+                form.id = pending.id;
+                form.form_class = class_ptr;
+                form.message = pending.message;
+                for (const auto &student_id : pending.request_ids)
+                {
+                    User *student_user = nullptr;
+                    if (find_user_by_id(&student_user, student_id))
+                        if (auto student = dynamic_cast<Student *>(student_user))
+                            form.requests.push_back(student);
+                }
+                professor->restore_form(form);
+            }
+    }
+
+    if (was_login)
+    {
+        User *previous = nullptr;
+        if (find_user_by_id(&previous, previous_user_id))
+        {
+            user = previous;
+            is_login = true;
+        }
+    }
+    loading_state = false;
+    return true;
 }

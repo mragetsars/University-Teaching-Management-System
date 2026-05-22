@@ -47,6 +47,17 @@ enum class WebAction
     CloseTaForm
 };
 
+enum class ApiRoute
+{
+    Courses,
+    Users,
+    User,
+    Me,
+    Notifications,
+    Login,
+    Logout
+};
+
 class LoginPageHandler : public RequestHandler
 {
 public:
@@ -92,6 +103,17 @@ private:
 
 public:
     WebActionHandler(Instruction_Handler *ih, WebAction action);
+    Response *callback(Request *) override;
+};
+
+class ApiHandler : public RequestHandler
+{
+private:
+    Instruction_Handler *ih_;
+    ApiRoute route_;
+
+public:
+    ApiHandler(Instruction_Handler *ih, ApiRoute route);
     Response *callback(Request *) override;
 };
 

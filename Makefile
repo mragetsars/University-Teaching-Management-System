@@ -21,10 +21,21 @@ $(OBJDIR)/%.o: $(SRCDIR)/%.cpp $(HEADERS)
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 run-cli: all
-	./out.utms data_majors.csv data_students.csv data_courses.csv data_professors.csv --cli
+	./out.utms data/data_majors.csv data/data_students.csv data/data_courses.csv data/data_professors.csv --cli
 
 run-web: all
-	./out.utms data_majors.csv data_students.csv data_courses.csv data_professors.csv --web
+	./out.utms data/data_majors.csv data/data_students.csv data/data_courses.csv data/data_professors.csv --web
+
+test: all
+	UTMS_SKIP_BUILD=1 ./scripts/run_smoke_tests.sh
+	UTMS_SKIP_BUILD=1 ./scripts/run_cli_regression_tests.sh
+	UTMS_SKIP_BUILD=1 ./scripts/run_web_smoke_tests.sh
+
+format:
+	@if command -v clang-format >/dev/null 2>&1; then clang-format -i includes/*.hpp sources/*.cpp; else echo "clang-format is not installed"; fi
+
+lint:
+	@if command -v clang-tidy >/dev/null 2>&1; then clang-tidy sources/*.cpp -- $(CXXFLAGS); else echo "clang-tidy is not installed"; fi
 
 sanitize:
 	$(MAKE) clean
@@ -33,4 +44,4 @@ sanitize:
 clean:
 	rm -rf $(OBJDIR) $(EXECUTABLE) utms.out
 
-.PHONY: all clean run-cli run-web sanitize
+.PHONY: all clean run-cli run-web test format lint sanitize

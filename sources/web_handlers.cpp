@@ -270,7 +270,7 @@ string base_styles()
     .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));gap:18px}.card{background:linear-gradient(180deg,var(--panel-color),var(--card-color));border:1px solid var(--border-color);border-radius:var(--radius);padding:22px;margin-bottom:18px;box-shadow:var(--shadow)}.card h2,.card h3{margin-top:0;letter-spacing:-.02em}.card p{margin-bottom:1rem}.muted{color:var(--muted-color)}.chip{display:inline-block;padding:5px 10px;border-radius:999px;background:rgba(var(--primary-rgb),.88);color:#fff;font-size:.82rem;margin:3px}.avatar{width:104px;height:104px;border-radius:50%;object-fit:cover;background:linear-gradient(135deg,var(--secondary-color),var(--primary-color));border:3px solid var(--border-color);box-shadow:0 10px 24px rgba(0,0,0,.22)}.post-img{max-width:100%;border-radius:14px;margin-top:12px;border:1px solid var(--border-color);box-shadow:0 8px 18px rgba(0,0,0,.18)}
     label{display:block;margin-top:12px;margin-bottom:6px;font-weight:700}input,textarea,select{width:100%;padding:12px 13px;border-radius:12px;border:1px solid var(--border-color);background:var(--card-color);color:var(--text-color);outline:none;transition:border-color .18s,box-shadow .18s}input:focus,textarea:focus,select:focus{border-color:var(--accent-color);box-shadow:0 0 0 3px rgba(var(--primary-rgb),.20)}textarea{min-height:120px;resize:vertical}input[type=file]{padding:10px;background:transparent}
     button,.button{display:inline-block;border:0;border-radius:12px;background:linear-gradient(135deg,var(--primary-color),var(--accent-color));color:#fff;font-weight:800;padding:12px 16px;cursor:pointer;margin-top:14px;box-shadow:0 8px 18px rgba(0,0,0,.18);transition:.18s}button:hover,.button:hover{transform:translateY(-1px);filter:brightness(1.06)}.button.secondary,button.secondary{background:var(--secondary-color)}button.danger,.button.danger{background:var(--danger-color)}.actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center}.notice{border-radius:14px;padding:15px;margin-bottom:18px;border:1px solid var(--border-color);background:var(--panel-color)}.notice pre{white-space:pre-wrap;margin:10px 0 0}.notice.success{border-color:var(--success-color)}.notice.error{border-color:var(--danger-color)}.muted-box{opacity:.85}
-    .table-wrap{overflow:auto;border:1px solid var(--border-color);border-radius:14px}.table{width:100%;border-collapse:collapse;background:var(--panel-color)}.table th,.table td{text-align:left;border-bottom:1px solid var(--border-color);padding:12px;vertical-align:top}.table th{font-size:.82rem;color:var(--muted-color);text-transform:uppercase;letter-spacing:.06em}.table tr:last-child td{border-bottom:0}.table tr:hover td{background:rgba(var(--primary-rgb),.06)}.inline-form{display:inline}.empty{padding:30px;text-align:center;border:1px dashed var(--border-color);border-radius:14px;color:var(--muted-color)}.hero{display:grid;grid-template-columns:auto minmax(0,1fr);gap:20px;align-items:center}.hero h2{margin:0}.section-title{margin:26px 0 12px}.login-body{display:flex;align-items:center;justify-content:center;min-height:100vh}.login-container{display:flex;flex-direction:column;justify-content:center;align-items:center;width:100%;padding:24px}.UTMS-logo{font-size:5rem;margin-bottom:1rem;color:var(--text-color);letter-spacing:.03em}.login-box{width:min(430px,92vw);padding:2.15rem;display:flex;border-radius:18px;align-items:center;flex-direction:column;justify-content:center;background:var(--panel-color);border:1px solid var(--border-color);box-shadow:var(--shadow)}.login-box input{margin-top:1rem}.login-box button{width:100%;font-size:1rem}.login-theme{position:fixed;top:1rem;right:1rem;border-radius:999px;padding:.65rem 1rem;border:1px solid var(--border-color);cursor:pointer;color:#fff;background:var(--primary-color)}
+    .toolbar{display:flex;gap:10px;align-items:center;justify-content:space-between;margin:0 0 12px}.toolbar input{max-width:360px}.breadcrumb{font-size:.86rem;color:var(--muted-color);margin-bottom:7px}.table-wrap{overflow:auto;border:1px solid var(--border-color);border-radius:14px}.table{width:100%;border-collapse:collapse;background:var(--panel-color)}.table th,.table td{text-align:left;border-bottom:1px solid var(--border-color);padding:12px;vertical-align:top}.table th{font-size:.82rem;color:var(--muted-color);text-transform:uppercase;letter-spacing:.06em}.table tr:last-child td{border-bottom:0}.table tr:hover td{background:rgba(var(--primary-rgb),.06)}.inline-form{display:inline}.empty{padding:30px;text-align:center;border:1px dashed var(--border-color);border-radius:14px;color:var(--muted-color)}.hero{display:grid;grid-template-columns:auto minmax(0,1fr);gap:20px;align-items:center}.hero h2{margin:0}.section-title{margin:26px 0 12px}.login-body{display:flex;align-items:center;justify-content:center;min-height:100vh}.login-container{display:flex;flex-direction:column;justify-content:center;align-items:center;width:100%;padding:24px}.UTMS-logo{font-size:5rem;margin-bottom:1rem;color:var(--text-color);letter-spacing:.03em}.login-box{width:min(430px,92vw);padding:2.15rem;display:flex;border-radius:18px;align-items:center;flex-direction:column;justify-content:center;background:var(--panel-color);border:1px solid var(--border-color);box-shadow:var(--shadow)}.login-box input{margin-top:1rem}.login-box button{width:100%;font-size:1rem}.login-theme{position:fixed;top:1rem;right:1rem;border-radius:999px;padding:.65rem 1rem;border:1px solid var(--border-color);cursor:pointer;color:#fff;background:var(--primary-color)}
     @media(max-width:900px){.app{grid-template-columns:1fr}.sidebar{position:relative;height:auto}.content{padding:18px}.topbar{align-items:flex-start;flex-direction:column}.topbar-actions{width:100%;justify-content:space-between}.UTMS-logo{font-size:3.6rem}.hero{grid-template-columns:1fr}.brand-mini img{width:52px;height:52px}}
     )CSS";
 }
@@ -283,7 +283,7 @@ string page_shell(Instruction_Handler *ih, const string &title, const string &ac
 
     string html;
     html += "<!doctype html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'>";
-    html += "<title>" + html_escape(title) + "</title><style>" + base_styles() + "</style></head><body>";
+    html += "<title>" + html_escape(title) + "</title><link rel='icon' href='/favicon.ico' type='image/x-icon'><style>" + base_styles() + "</style></head><body>";
     html += "<div class='app'>" + sidebar(ih, active) + "<main class='content'>";
     html += "<div class='topbar'><div><h1>" + html_escape(title) + "</h1><div class='muted'>University Teaching Management System</div></div>";
     html += "<div class='topbar-actions'><div class='user-badge'>";
@@ -294,7 +294,7 @@ string page_shell(Instruction_Handler *ih, const string &title, const string &ac
     html += "<div><strong>" + html_escape(ih->current_user_name()) + "</strong><span>#" + html_escape(ih->current_user_id()) + " · " + html_escape(ih->current_user_type_label()) + "</span></div></div>";
     html += "<button type='button' class='theme-change'>Change Theme</button></div></div>";
     html += content;
-    html += "</main></div><script>const savedTheme=localStorage.getItem('utms-theme');if(savedTheme==='light')document.body.classList.add('theme');document.querySelector('.theme-change')?.addEventListener('click',()=>{document.body.classList.toggle('theme');localStorage.setItem('utms-theme',document.body.classList.contains('theme')?'light':'dark');});</script></body></html>";
+    html += "</main></div><script>const savedTheme=localStorage.getItem('utms-theme');if(savedTheme==='light')document.body.classList.add('theme');document.querySelector('.theme-change')?.addEventListener('click',()=>{document.body.classList.toggle('theme');localStorage.setItem('utms-theme',document.body.classList.contains('theme')?'light':'dark');});document.querySelectorAll('[data-confirm]').forEach(f=>f.addEventListener('submit',e=>{if(!confirm(f.dataset.confirm||'Are you sure?'))e.preventDefault();}));document.querySelectorAll('[data-table-filter]').forEach(input=>{input.addEventListener('input',()=>{const target=document.querySelector(input.dataset.tableFilter);if(!target)return;const q=input.value.toLowerCase();target.querySelectorAll('tbody tr').forEach(row=>{row.style.display=row.textContent.toLowerCase().includes(q)?'':'none';});});});</script></body></html>";
     return html;
 }
 
@@ -321,7 +321,7 @@ Response *render_message_page(Instruction_Handler *ih, const string &title, cons
 string login_document(const string &error_message = EMPTYSTRING)
 {
     string html;
-    html += "<!doctype html><html lang='en'><head><meta charset='UTF-8'><meta name='viewport' content='width=device-width, initial-scale=1.0'><title>UTMS Login</title><style>" + base_styles() + "</style></head>";
+    html += "<!doctype html><html lang='en'><head><meta charset='UTF-8'><meta name='viewport' content='width=device-width, initial-scale=1.0'><title>UTMS Login</title><link rel='icon' href='/favicon.ico' type='image/x-icon'><style>" + base_styles() + "</style></head>";
     html += "<body class='login-body'><div class='login-container'><img src='/UTMS.png' alt='Home Logo' style='width:23vh'><div class='UTMS-logo'>UTMS</div>";
     html += "<form class='login-box' action='/' method='post'><h1>LOGIN</h1>";
     if (!error_message.empty())
@@ -336,7 +336,7 @@ string class_table(const vector<WEB_CLASS_VIEW> &classes, bool include_channel_l
 {
     if (classes.empty())
         return "<div class='empty'>No course offerings are available.</div>";
-    string html = "<div class='table-wrap'><table class='table'><thead><tr><th>ID</th><th>Course</th><th>Capacity</th><th>Professor</th><th>Time</th><th>Exam</th><th>Class</th>";
+    string html = "<div class='toolbar'><span class='muted'>Filter visible rows</span><input data-table-filter='#course-table' placeholder='Search courses, professors or times'></div><div class='table-wrap'><table id='course-table' class='table'><thead><tr><th>ID</th><th>Course</th><th>Capacity</th><th>Professor</th><th>Time</th><th>Exam</th><th>Class</th>";
     if (include_channel_link)
         html += "<th>Channel</th>";
     html += "</tr></thead><tbody>";
@@ -516,7 +516,7 @@ string render_personal_page_content(Instruction_Handler *ih, Request *req)
         content += "<div class='actions'><a class='button secondary' href='/post?user_id=" + attr_escape(view.id) + "&post_id=" + int_to_str(post.id) + "'>Details</a>";
         if (view.id == ih->current_user_id() && !post.is_ta_form)
         {
-            content += "<form class='inline-form' method='post' action='/post/delete'><input type='hidden' name='id' value='" + int_to_str(post.id) + "'><button class='danger' type='submit'>Delete</button></form>";
+            content += "<form class='inline-form' method='post' action='/post/delete' data-confirm='Delete this post?'><input type='hidden' name='id' value='" + int_to_str(post.id) + "'><button class='danger' type='submit'>Delete</button></form>";
         }
         content += "</div></div>";
     }
@@ -667,7 +667,7 @@ string render_close_ta_form_content(Instruction_Handler *ih, Request *req)
     if (!found)
         return result_banner(make_answer(NotFound));
     string html = "<div class='card'><h2>" + html_escape(selected.course_name) + "</h2><p class='muted'>Form #" + int_to_str(selected.id) + "</p><p>" + html_escape(selected.message) + "</p></div>";
-    html += "<div class='card'><form method='post' action='/ta_form/close'><input type='hidden' name='id' value='" + int_to_str(selected.id) + "'>";
+    html += "<div class='card'><form method='post' action='/ta_form/close' data-confirm='Close this TA form and notify all applicants?'><input type='hidden' name='id' value='" + int_to_str(selected.id) + "'>";
     if (selected.requests.empty())
         html += "<p class='muted'>No requests have been submitted. Closing the form will remove it from your personal page.</p>";
     else
@@ -746,7 +746,7 @@ Response *WebPageHandler::callback(Request *req)
         else
             content += "<div class='empty'>No profile photo has been set.</div>";
         content += "</div><div class='card'><form method='post' action='/profile_photo' enctype='multipart/form-data'><label>New PNG Profile Photo</label><input type='file' name='photo' accept='image/png' required><button type='submit'>Save Photo</button></form>";
-        content += "<form method='post' action='/profile_photo/delete'><button class='danger' type='submit'>Delete Profile Photo</button></form></div>";
+        content += "<form method='post' action='/profile_photo/delete' data-confirm='Delete your profile photo?'><button class='danger' type='submit'>Delete Profile Photo</button></form></div>";
         return render_page(ih_, "Profile Photo", "profile-photo", content);
     }
     case WebPage::Courses:
@@ -798,7 +798,7 @@ Response *WebPageHandler::callback(Request *req)
     {
         if (!ih_->current_user_is_student())
             return render_page(ih_, "Drop Course", "drop", role_gate_message("students"));
-        string content = "<div class='card'><form method='post' action='/my_courses/delete'><label>Course Offering ID</label><input name='id' required placeholder='7'><button class='danger' type='submit'>Drop</button></form></div><h2>Your Courses</h2>" + class_table(ih_->web_my_student_classes(), false);
+        string content = "<div class='card'><form method='post' action='/my_courses/delete' data-confirm='Drop this course?'><label>Course Offering ID</label><input name='id' required placeholder='7'><button class='danger' type='submit'>Drop</button></form></div><h2>Your Courses</h2>" + class_table(ih_->web_my_student_classes(), false);
         return render_page(ih_, "Drop Course", "drop", content);
     }
     case WebPage::CourseOffer:
@@ -966,6 +966,157 @@ Response *WebActionHandler::callback(Request *req)
     }
     }
     return render_message_page(ih_, "Not Found", "home", make_answer(NotFound), "/home", "Dashboard");
+}
+
+
+namespace
+{
+string json_escape(const string &input)
+{
+    string output;
+    for (unsigned char ch : input)
+    {
+        switch (ch)
+        {
+        case '\\': output += "\\\\"; break;
+        case '"': output += "\\\""; break;
+        case '\b': output += "\\b"; break;
+        case '\f': output += "\\f"; break;
+        case '\n': output += "\\n"; break;
+        case '\r': output += "\\r"; break;
+        case '\t': output += "\\t"; break;
+        default:
+            if (ch < 0x20)
+            {
+                char buffer[7];
+                snprintf(buffer, sizeof(buffer), "\\u%04x", ch);
+                output += buffer;
+            }
+            else
+                output += static_cast<char>(ch);
+        }
+    }
+    return output;
+}
+
+string json_string(const string &value)
+{
+    return "\"" + json_escape(value) + "\"";
+}
+
+Response *json_response(const string &body, Response::Status status = Response::Status::ok)
+{
+    Response *res = new Response(status);
+    res->setHeader("Content-Type", "application/json; charset=utf-8");
+    res->setBody(body);
+    return res;
+}
+
+string json_answer(ANSWER answer)
+{
+    string status = answer_title(answer.output);
+    string text = answer_to_string(answer);
+    return string("{\"status\":") + json_string(status) + ",\"message\":" + json_string(text) + "}";
+}
+}
+
+ApiHandler::ApiHandler(Instruction_Handler *ih, ApiRoute route) : ih_(ih), route_(route) {}
+Response *ApiHandler::callback(Request *req)
+{
+    switch (route_)
+    {
+    case ApiRoute::Login:
+    {
+        string username = req->getBodyParam("username");
+        string password = req->getBodyParam("password");
+        ANSWER answer = run_checked(ih_, question(Post_Type, Login_Input, {ID, username, PASSWORD, password}));
+        if (answer.output == Ok)
+        {
+            Response *res = json_response("{\"status\":\"OK\",\"id\":" + json_string(username) + "}");
+            res->setSessionId(username);
+            return res;
+        }
+        return json_response(json_answer(answer), answer.output == PermissionDenied ? Response::Status::forbidden : Response::Status::badRequest);
+    }
+    case ApiRoute::Logout:
+    {
+        if (!has_current_session(ih_, req))
+            return json_response("{\"status\":\"Permission Denied\"}", Response::Status::forbidden);
+        ANSWER answer = run_checked(ih_, question(Post_Type, Logout_Input, {EMPTYSTRING}));
+        Response *res = json_response(json_answer(answer));
+        res->setSessionId(EMPTYSTRING);
+        return res;
+    }
+    default:
+        break;
+    }
+
+    if (!has_current_session(ih_, req))
+        return json_response("{\"status\":\"Permission Denied\"}", Response::Status::forbidden);
+
+    switch (route_)
+    {
+    case ApiRoute::Courses:
+    {
+        string body = "{\"courses\":[";
+        auto courses = ih_->web_all_classes();
+        for (size_t i = 0; i < courses.size(); ++i)
+        {
+            if (i) body += ",";
+            const auto &c = courses[i];
+            body += "{\"id\":" + json_string(c.id) + ",\"name\":" + json_string(c.name) + ",\"capacity\":" + json_string(c.capacity) +
+                    ",\"professor\":" + json_string(c.professor_name) + ",\"professor_id\":" + json_string(c.professor_id) +
+                    ",\"time\":" + json_string(c.time) + ",\"exam_date\":" + json_string(c.exam_date) + ",\"class_number\":" + json_string(c.class_number) + "}";
+        }
+        body += "]}";
+        return json_response(body);
+    }
+    case ApiRoute::Users:
+    {
+        string body = "{\"users\":[";
+        auto users = ih_->web_all_users();
+        for (size_t i = 0; i < users.size(); ++i)
+        {
+            if (i) body += ",";
+            body += "{\"id\":" + json_string(users[i].id) + ",\"name\":" + json_string(users[i].name) + ",\"type\":" + json_string(users[i].type_label) + "}";
+        }
+        body += "]}";
+        return json_response(body);
+    }
+    case ApiRoute::User:
+    case ApiRoute::Me:
+    {
+        string id = route_ == ApiRoute::Me ? ih_->current_user_id() : req->getQueryParam("id");
+        WEB_USER_VIEW view;
+        if (!ih_->web_user_view(id, &view))
+            return json_response("{\"status\":\"Not Found\"}", Response::Status::notFound);
+        string body = "{\"id\":" + json_string(view.id) + ",\"name\":" + json_string(view.name) + ",\"type\":" + json_string(view.type_label) +
+                      ",\"major\":" + json_string(view.major) + ",\"semester\":" + json_string(view.semester) + ",\"position\":" + json_string(view.position) +
+                      ",\"profile_photo\":" + json_string(public_asset_src(view.profile_photo_address)) + ",\"courses\":[";
+        for (size_t i = 0; i < view.course_names.size(); ++i)
+        {
+            if (i) body += ",";
+            body += json_string(view.course_names[i]);
+        }
+        body += "],\"posts\":[";
+        for (size_t i = 0; i < view.posts.size(); ++i)
+        {
+            if (i) body += ",";
+            body += "{\"id\":" + to_string(view.posts[i].id) + ",\"title\":" + json_string(view.posts[i].title) +
+                    ",\"message\":" + json_string(view.posts[i].message) + ",\"image\":" + json_string(public_asset_src(view.posts[i].image_address)) +
+                    ",\"ta_form\":" + string(view.posts[i].is_ta_form ? "true" : "false") + "}";
+        }
+        body += "]}";
+        return json_response(body);
+    }
+    case ApiRoute::Notifications:
+    {
+        ANSWER answer = run_checked(ih_, question(Get_Type, Notification_Input, {EMPTYSTRING}));
+        return json_response(json_answer(answer));
+    }
+    default:
+        return json_response("{\"status\":\"Not Found\"}", Response::Status::notFound);
+    }
 }
 
 Response *UploadedAssetHandler::callback(Request *req)

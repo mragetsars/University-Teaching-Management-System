@@ -96,3 +96,18 @@ response Student::show_class(vector<string> *output)
     }
     return JustInformation;
 }
+
+void Student::restore_class(Class *input_class)
+{
+    if (input_class != nullptr && !has_class(input_class->id))
+        classes.push_back(input_class);
+}
+
+vector<string> Student::class_ids() const
+{
+    vector<string> ids;
+    for (auto input_class : classes)
+        if (input_class != nullptr)
+            ids.push_back(input_class->id);
+    return ids;
+}

@@ -48,4 +48,9 @@ public:
     void send_notifications(string input_subject, User *excluded_user = nullptr);
     response show_channel(User *input_user, vector<string> *output);
     vector<CHANNEL_POST> get_channel_posts() const;
+    void restore_student(User *student);
+    void restore_teacher_assistant(User *assistant);
+    void restore_channel_post(const CHANNEL_POST &post);
+    vector<string> student_ids() const;
+    vector<string> teacher_assistant_ids() const;
 };

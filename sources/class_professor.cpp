@@ -218,3 +218,20 @@ response Professor::close_form_with_decisions(int input_id, const map<string, st
     forms.erase(forms.begin() + form_index);
     return JustInformation;
 }
+
+void Professor::restore_form(const FORM &form)
+{
+    for (const auto &existing : forms)
+        if (existing.id == form.id)
+            return;
+    forms.push_back(form);
+}
+
+vector<string> Professor::class_ids() const
+{
+    vector<string> ids;
+    for (auto input_class : classes)
+        if (input_class != nullptr)
+            ids.push_back(input_class->id);
+    return ids;
+}

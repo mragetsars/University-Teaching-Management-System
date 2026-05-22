@@ -18,3 +18,7 @@ _note.txt
 .DS_Store
 .vscode/
 .idea/
+
+# Optional persistence snapshots
+state/
+*.utms-state
